@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Management API</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="main-header">
+    <h1>Order API Sample App</h1>
+</header>
+<div id="loader" class="loader-overlay hidden">
+    <div class="loader-spinner"></div>
+</div>
+<div class="main-grid">
+    <div class="left-panel">
+        <fieldset class="card">
+            <legend>API Configuration</legend>
+            <div class="auth-section">
+                <div class="input-group">
+                    <label for="apiUrl">API Base URL:</label>
+                    <input type="url" id="apiUrl" placeholder="https://your-api.com/api/v1" value="https://api.example.com/api/v1">
+                </div>
+                <div class="input-group">
+                    <label for="apiToken">Authorization Token:</label>
+                    <input type="password" id="apiToken" placeholder="Bearer token or API key">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="getAllOrders()">
+                <span id="testStatus">Get All Orders</span>
+            </button>
+            <div id="connectionStatus"></div>
+        </fieldset>
+
+        <fieldset class="card">
+            <legend>Order Operations</legend>
+            <div class="controls">
+                <div class="card">
+                    <div class="input-group">
+                        <label for="searchNumber">Search by Display Number:</label>
+                        <input type="text" id="searchNumber" placeholder="ORD-12345">
+                        <button class="btn btn-success" onclick="searchOrders()">Search Orders</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="input-group">
+                        <label for="searchSubsidiary">Filter by Subsidiary:</label>
+                        <input type="text" id="searchSubsidiary" placeholder="/api/v1/subsidiaries/demo">
+                        <button class="btn btn-success" onclick="searchOrders()">Search Orders</button>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="input-group">
+                        <label for="orderId">Get Specific Order ID:</label>
+                        <input type="text" id="orderId" placeholder="Enter order ID">
+                        <button class="btn btn-success" onclick="getOrderById()">Get Order by ID</button>
+                    </div>
+                </div>
+            </div>
+        </fieldset>
+    </div>
+    <div class="right-panel">
+        <div class="card" id="ordersDisplay" style="display: none; max-height: 700px; overflow-y: auto;">
+            <h2>📦 Orders</h2>
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 8px;">
+                <button class="btn btn-warning btn-small" onclick="showRawOrders()">Raw</button>
+            </div>
+            <div id="ordersList"></div>
+        </div>
+        <div class="card" id="responseSection" style="display: none;">
+            <div class="response-container">
+                <div class="response-header">
+                    <span class="response-title">📋 API Response</span>
+                    <div class="response-actions">
+                        <button class="btn btn-info btn-small" onclick="pretifyOrders()">Pretify</button>
+                        <button class="btn btn-warning btn-small" onclick="convertToXML()">Convert to XML</button>
+                        <button class="btn btn-primary btn-small" onclick="copyResponse()">Copy</button>
+                        <button class="btn btn-success btn-small" onclick="downloadResponse()">Download</button>
+                    </div>
+                </div>
+                <pre id="responseContent"></pre>
+            </div>
+        </div>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
