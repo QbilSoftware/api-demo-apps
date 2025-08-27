@@ -76,7 +76,7 @@ async function getAllOrders() {
     }
 
     try {
-        const response = await fetch(`${config.url}/orders`, {
+        const response = await fetch(`${config.url}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -121,7 +121,7 @@ async function searchOrders() {
     if (subsidiary) params.append('subsidiary', subsidiary);
 
     try {
-        const response = await fetch(`${config.url}/orders?${params}`, {
+        const response = await fetch(`${config.url}?${params}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -162,7 +162,7 @@ async function getOrderById() {
     }
 
     try {
-        const response = await fetch(`${config.url}/orders/${orderId}`, {
+        const response = await fetch(`${config.url}${orderId}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
