@@ -23,6 +23,10 @@ fastify.get('/webhook', (req, reply) => {
     reply.sendFile('webhook.html');
 });
 
+fastify.get('/order-xml', (req, reply) => {
+    reply.sendFile('xml-conversion.html');
+});
+
 // Save API config (URL + Token)
 fastify.post('/set-config', async (request, reply) => {
     const { apiUrl, apiToken } = request.body;
