@@ -3,44 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webhook Data Syncing</title>
+    <title>Webhook Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js" defer></script>
 </head>
-<body class="bg-gray-100 font-sans text-gray-900 min-h-screen">
+<body class="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 font-sans text-gray-900">
 
-<!-- Header -->
-<header class="bg-blue-600 text-white p-8 text-center shadow-lg relative overflow-hidden">
-    <h1 class="text-4xl font-bold flex justify-center items-center gap-2">
-        <i class="fas fa-broadcast-tower"></i>
-        Webhook Dashboard
-    </h1>
-    <p class="opacity-90 mt-1">Real-time webhook monitoring and data visualization</p>
-    <!-- Menu -->
-    <nav class="absolute top-4 left-4">
-        <a href="/" class="text-white font-semibold hover:underline flex items-center gap-1">
-            <i class="fas fa-home"></i> Home
-        </a>
-    </nav>
-</header>
+<div class="max-w-7xl mx-auto p-6">
 
-<main class="max-w-7xl mx-auto p-6">
+    <!-- Header -->
+    <header class="text-center mb-8 relative">
+        <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg flex justify-center items-center gap-2">
+            <i class="fas fa-broadcast-tower"></i> Webhook Dashboard
+        </h1>
+        <p class="text-white/80 mt-2">Real-time webhook monitoring and data visualization</p>
+        <div class="mt-4">
+            <a href="/index.html" class="inline-block px-4 py-2 rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-md hover:bg-white/30 shadow transition">
+                🏠 Back to Home
+            </a>
+        </div>
+    </header>
 
     <!-- Statistics -->
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-xl shadow p-6 text-center hover:shadow-lg transition">
-            <div id="totalWebhooks" class="text-3xl font-bold text-blue-600">0</div>
+        <div class="bg-white/95 rounded-xl shadow p-6 text-center hover:shadow-2xl transition">
+            <div id="totalWebhooks" class="text-3xl font-bold text-indigo-600">0</div>
             <div class="uppercase text-gray-500 font-semibold mt-1">Total Webhooks</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 text-center hover:shadow-lg transition">
-            <div id="todayWebhooks" class="text-3xl font-bold text-blue-600">0</div>
+        <div class="bg-white/95 rounded-xl shadow p-6 text-center hover:shadow-2xl transition">
+            <div id="todayWebhooks" class="text-3xl font-bold text-indigo-600">0</div>
             <div class="uppercase text-gray-500 font-semibold mt-1">Today</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 text-center hover:shadow-lg transition">
-            <div id="lastHour" class="text-3xl font-bold text-blue-600">0</div>
+        <div class="bg-white/95 rounded-xl shadow p-6 text-center hover:shadow-2xl transition">
+            <div id="lastHour" class="text-3xl font-bold text-indigo-600">0</div>
             <div class="uppercase text-gray-500 font-semibold mt-1">Last Hour</div>
         </div>
-        <div class="bg-white rounded-xl shadow p-6 text-center hover:shadow-lg transition">
+        <div class="bg-white/95 rounded-xl shadow p-6 text-center hover:shadow-2xl transition">
         <span class="inline-flex items-center gap-1 bg-green-100 text-green-600 px-3 py-1 rounded-full font-semibold uppercase text-sm">
           <i class="fas fa-circle"></i> Live
         </span>
@@ -50,28 +48,23 @@
 
     <!-- Configuration & System Info -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-
         <!-- API Configuration -->
-        <div class="bg-white rounded-xl shadow p-6 hover:shadow-lg transition">
+        <div class="bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition">
             <h3 class="text-xl font-semibold flex items-center gap-2 mb-4">
                 <i class="fas fa-cog"></i> API Configuration
             </h3>
             <form id="configForm" class="space-y-4">
                 <div>
-                    <label for="apiUrl" class="block font-medium text-gray-700 uppercase text-xs mb-1">
-                        <i class="fas fa-link"></i> API Base URL
-                    </label>
-                    <input type="url" id="apiUrl" name="apiUrl" required placeholder="https://api.example.com"
-                           class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-blue-600 focus:ring-1 focus:ring-blue-200 outline-none transition">
+                    <label for="apiUrl" class="block text-sm font-medium text-gray-700">API Base URL</label>
+                    <input type="url" id="apiUrl" placeholder="https://api.example.com" required
+                           class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
                 </div>
                 <div>
-                    <label for="apiToken" class="block font-medium text-gray-700 uppercase text-xs mb-1">
-                        <i class="fas fa-key"></i> API Token
-                    </label>
-                    <input type="password" id="apiToken" name="apiToken" required placeholder="Enter your API token"
-                           class="w-full border-2 border-gray-300 rounded-lg p-3 focus:border-blue-600 focus:ring-1 focus:ring-blue-200 outline-none transition">
+                    <label for="apiToken" class="block text-sm font-medium text-gray-700">API Token</label>
+                    <input type="password" id="apiToken" placeholder="Enter your API token" required
+                           class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
                 </div>
-                <button type="submit" class="bg-blue-600 text-white px-5 py-3 rounded-lg font-semibold flex items-center gap-2 hover:shadow-lg transition">
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg font-semibold transition">
                     <i class="fas fa-save"></i> Save Configuration
                 </button>
             </form>
@@ -79,7 +72,7 @@
         </div>
 
         <!-- System Information -->
-        <div class="bg-white rounded-xl shadow p-6 hover:shadow-lg transition">
+        <div class="bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition">
             <h3 class="text-xl font-semibold flex items-center gap-2 mb-4">
                 <i class="fas fa-info-circle"></i> System Information
             </h3>
@@ -102,8 +95,8 @@
         </div>
     </div>
 
-    <!-- Data Table -->
-    <div class="bg-white rounded-xl shadow overflow-x-auto hover:shadow-lg transition">
+    <!-- Webhook Data Table -->
+    <div class="bg-white/95 rounded-xl shadow overflow-x-auto hover:shadow-2xl transition">
         <div class="flex justify-between items-center p-6 border-b border-gray-200 bg-gray-50">
             <h3 class="text-xl font-semibold flex items-center gap-2"><i class="fas fa-database"></i> Webhook Data</h3>
             <div id="refreshIndicator" class="flex items-center gap-2 text-gray-500">
@@ -114,9 +107,9 @@
         <table class="w-full text-left border-collapse">
             <thead class="bg-gray-50">
             <tr>
-                <th class="p-4 uppercase text-xs font-semibold text-gray-700"><i class="fas fa-hashtag"></i> Resource ID</th>
-                <th class="p-4 uppercase text-xs font-semibold text-gray-700"><i class="fas fa-clock"></i> Received At</th>
-                <th class="p-4 uppercase text-xs font-semibold text-gray-700"><i class="fas fa-code"></i> Payload Data</th>
+                <th class="p-4 uppercase text-xs font-semibold text-gray-700">Resource ID</th>
+                <th class="p-4 uppercase text-xs font-semibold text-gray-700">Received At</th>
+                <th class="p-4 uppercase text-xs font-semibold text-gray-700">Payload Data</th>
             </tr>
             </thead>
             <tbody id="dataTable">
@@ -131,7 +124,7 @@
         </table>
     </div>
 
-</main>
+</div>
 
 <script>
     let webhookStats = { total:0, today:0, lastHour:0 };
@@ -155,7 +148,7 @@
             const msgDiv = document.getElementById('configMsg'); msgDiv.innerHTML='';
             const alert = document.createElement('div');
             alert.className = `p-4 rounded ${data.success?'bg-green-100 text-green-600':'bg-red-100 text-red-600'} flex items-center gap-2`;
-            alert.innerHTML = `<i class="fas ${data.success?'fa-check-circle':'fa-exclamation-triangle'}"></i> ${data.success?'Configuration saved successfully!':'Error saving configuration. Please try again.'}`;
+            alert.innerHTML = `<i class="fas ${data.success?'fa-check-circle':'fa-exclamation-triangle'}"></i> ${data.success?'Configuration saved successfully!':'Error saving configuration.'}`;
             msgDiv.appendChild(alert);
             if(data.success){ setTimeout(()=>{ alert.remove(); }, 3000);}
         } catch(e){ console.error(e); }
@@ -164,7 +157,7 @@
 
     async function loadData(){
         const refreshIndicator = document.getElementById('refreshIndicator');
-        refreshIndicator.classList.add('text-blue-600');
+        refreshIndicator.classList.add('text-indigo-600');
 
         try{
             const res = await fetch('/get-data'); const json = await res.json();
@@ -179,9 +172,7 @@
                 json.results.forEach(item=>{
                     const row = document.createElement('tr');
                     row.innerHTML=`
-              <td class="p-4" data-label="Resource ID">
-                <code class="bg-indigo-100 px-2 py-1 rounded font-semibold">${item.id}</code>
-              </td>
+              <td class="p-4" data-label="Resource ID"><code class="bg-indigo-100 px-2 py-1 rounded font-semibold">${item.id}</code></td>
               <td class="p-4" data-label="Received At">
                 <div class="flex flex-col gap-1">
                   <span>${formatDate(item.receivedAt)}</span>
@@ -204,7 +195,7 @@
             }
             document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
         } catch(e){ console.error(e); }
-        finally{ refreshIndicator.classList.remove('text-blue-600'); }
+        finally{ refreshIndicator.classList.remove('text-indigo-600'); }
     }
 
     function updateStats(){
@@ -221,5 +212,6 @@
     setInterval(loadData,5000);
     loadData();
 </script>
+
 </body>
 </html>
