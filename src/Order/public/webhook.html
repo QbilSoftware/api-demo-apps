@@ -98,36 +98,50 @@
     <!-- Webhook Data Table -->
     <div class="bg-white/95 rounded-xl shadow overflow-x-auto hover:shadow-2xl transition">
         <div class="flex justify-between items-center p-6 border-b border-gray-200 bg-gray-50">
-            <h3 class="text-xl font-semibold flex items-center gap-2"><i class="fas fa-database"></i> Webhook Data</h3>
+            <h3 class="text-xl font-semibold flex items-center gap-2"><i class="fas fa-database"></i> Order Data</h3>
             <div id="refreshIndicator" class="flex items-center gap-2 text-gray-500">
                 <i class="fas fa-sync-alt animate-spin"></i>
                 <span>Auto-refresh active</span>
             </div>
         </div>
-        <table class="w-full text-left border-collapse">
-            <thead class="bg-gray-50">
-            <tr>
-                <th class="p-4 uppercase text-xs font-semibold text-gray-700">Resource ID</th>
-                <th class="p-4 uppercase text-xs font-semibold text-gray-700">Received At</th>
-                <th class="p-4 uppercase text-xs font-semibold text-gray-700">View Response</th>
-            </tr>
-            </thead>
-            <tbody id="dataTable">
-            <tr>
-                <td colspan="3" class="text-center text-gray-400 py-12">
-                    <i class="fas fa-inbox text-4xl mb-2 block"></i>
-                    <div>No webhook data available</div>
-                    <small>Configure your API settings and start receiving webhooks</small>
-                </td>
-            </tr>
-            </tbody>
-        </table>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-max">
+                <thead class="bg-gray-50">
+                <tr>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">ID</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Display #</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Subsidiary</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Type</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Delivery Mode</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">BL #</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Notes</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Transporter Booking #</th>
+                    <th class="p-3 uppercase text-xs font-semibold text-gray-700 whitespace-nowrap">Transporter Name</th>
+                </tr>
+                </thead>
+                <tbody id="dataTable">
+                <tr>
+                    <td colspan="9" class="text-center text-gray-400 py-12">
+                        <i class="fas fa-inbox text-4xl mb-2 block"></i>
+                        <div>No webhook data available</div>
+                        <small>Configure your API settings and start receiving webhooks</small>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 
 </div>
 
 <script>
     let webhookStats = { total:0, today:0, lastHour:0 };
+
+    // Define the fields we want to display
+    const DISPLAY_FIELDS = [
+        'id', 'displayNumber', 'subsidiary', 'type', 'orderDeliveryMode',
+        'blNumber', 'notes', 'transporterBookingNo', 'transporterName'
+    ];
 
     document.getElementById('configForm').addEventListener('submit', async e => {
         e.preventDefault();
@@ -155,46 +169,110 @@
         finally{ btn.innerHTML=original; btn.disabled=false;}
     });
 
+    // Function to remove duplicates and keep only the latest updated record
+    function removeDuplicates(data) {
+        const uniqueMap = new Map();
+
+        data.forEach(item => {
+            const id = item.id || item.resourceId || item._id;
+            const updatedAt = new Date(item.data.updatedAt || item.data.updated_at || item.data.modifiedAt || item.receivedAt || Date.now());
+
+            if (!uniqueMap.has(id) || updatedAt > uniqueMap.get(id).updatedDate) {
+                uniqueMap.set(id, {
+                    ...item,
+                    updatedDate: updatedAt
+                });
+            }
+        });
+
+        return Array.from(uniqueMap.values()).sort((a, b) => b.updatedDate - a.updatedDate);
+    }
+
+    // Function to extract and format field value
+    function getFieldValue(item, field) {
+        const data = item.data || {};
+        // Try different possible field names
+        const possibleNames = [
+            field,
+            field.toLowerCase(),
+            field.replace(/([A-Z])/g, '_$1').toLowerCase(),
+            field.replace(/([a-z])([A-Z])/g, '$1_$2').toLowerCase()
+        ];
+
+        let value = null;
+        for (const name of possibleNames) {
+            if (data[name] !== undefined && data[name] !== null) {
+                value = data[name];
+                break;
+            }
+        }
+        // also check in root item
+        if (value === null) {
+            for (const name of possibleNames) {
+                if (item[name] !== undefined && item[name] !== null) {
+                    value = item[name];
+                    break;
+                }
+            }
+        }
+
+
+        if (value === null || value === undefined) {
+            return '-';
+        }
+
+        return String(value);
+    }
+
     async function loadData(){
         const refreshIndicator = document.getElementById('refreshIndicator');
         refreshIndicator.classList.add('text-indigo-600');
 
         try{
-            const res = await fetch('/get-data'); const json = await res.json();
+            const res = await fetch('/get-data');
+            const json = await res.json();
             const tbody = document.getElementById('dataTable');
 
-            if(json.success && json.results.length){
+            if(json.success && json.results && json.results.length){
+                // Remove duplicates and keep only latest
+                const uniqueData = removeDuplicates(json.results);
+
                 tbody.innerHTML='';
-                webhookStats.total = json.results.length;
-                webhookStats.today = json.results.filter(i=>isToday(i.receivedAt)).length;
-                webhookStats.lastHour = json.results.filter(i=>isLastHour(i.receivedAt)).length;
+                webhookStats.total = uniqueData.length;
+                webhookStats.today = uniqueData.filter(i=>isToday(i.updatedDate)).length;
+                webhookStats.lastHour = uniqueData.filter(i=>isLastHour(i.updatedDate)).length;
                 updateStats();
-                json.results.forEach(item=>{
+
+                uniqueData.forEach(item=>{
                     const row = document.createElement('tr');
-                    row.innerHTML=`
-              <td class="p-4" data-label="Resource ID"><code class="bg-indigo-100 px-2 py-1 rounded font-semibold">${item.id}</code></td>
-              <td class="p-4" data-label="Received At">
-                <div class="flex flex-col gap-1">
-                  <span>${formatDate(item.receivedAt)}</span>
-                  <small class="text-gray-500">${formatTime(item.receivedAt)}</small>
-                </div>
-              </td>
-              <td class="p-4" data-label="Data">
-                <pre class="bg-gray-50 border border-gray-200 p-2 rounded overflow-x-auto">${JSON.stringify(item.data,null,2)}</pre>
-              </td>
-            `;
+                    row.className = 'border-b border-gray-100 hover:bg-gray-50 transition-colors';
+
+                    const cells = DISPLAY_FIELDS.map(field => {
+                        const value = getFieldValue(item, field);
+                        return `<td class="p-3 text-sm whitespace-nowrap">${value}</td>`;
+                    }).join('');
+
+                    row.innerHTML = cells;
                     tbody.appendChild(row);
                 });
             } else {
-                tbody.innerHTML=`<tr><td colspan="3" class="text-center text-gray-400 py-12">
-            <i class="fas fa-inbox text-4xl mb-2 block"></i>
-            <div>No webhook data available</div>
-            <small>Configure your API settings and start receiving webhooks</small>
-          </td></tr>`;
+                tbody.innerHTML=`<tr><td colspan="9" class="text-center text-gray-400 py-12">
+                    <i class="fas fa-inbox text-4xl mb-2 block"></i>
+                    <div>No webhook data available</div>
+                    <small>Configure your API settings and start receiving webhooks</small>
+                </td></tr>`;
                 updateStats();
             }
             document.getElementById('lastUpdated').textContent = new Date().toLocaleTimeString();
-        } catch(e){ console.error(e); }
+        } catch(e){
+            console.error('Error loading data:', e);
+            const tbody = document.getElementById('dataTable');
+            tbody.innerHTML=`<tr><td colspan="9" class="text-center text-red-400 py-12">
+                <i class="fas fa-exclamation-triangle text-4xl mb-2 block"></i>
+                <div>Error loading webhook data</div>
+                <small>Please check your API configuration and connection</small>
+            </td></tr>`;
+        }
         finally{ refreshIndicator.classList.remove('text-indigo-600'); }
     }
 
@@ -204,10 +282,16 @@
         document.getElementById('lastHour').textContent = webhookStats.lastHour;
     }
 
-    function formatDate(date){ return new Date(date).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}
-    function formatTime(date){ return new Date(date).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});}
-    function isToday(date){ const d=new Date(date); const t=new Date(); return d.toDateString()===t.toDateString();}
-    function isLastHour(date){ const d=new Date(date); return d>=new Date(Date.now()-3600000); }
+    function isToday(date){
+        if (!date) return false;
+        const d=new Date(date); const t=new Date();
+        return d.toDateString()===t.toDateString();
+    }
+    function isLastHour(date){
+        if (!date) return false;
+        const d=new Date(date);
+        return d>=new Date(Date.now()-3600000);
+    }
 
     setInterval(loadData,5000);
     loadData();
