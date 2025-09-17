@@ -23,6 +23,10 @@ fastify.get('/webhook', (req, reply) => {
     reply.sendFile('webhook.html');
 });
 
+fastify.get('/order-xml', (req, reply) => {
+    reply.sendFile('xml-conversion.html');
+});
+
 // Save API config (URL + Token)
 fastify.post('/set-config', async (request, reply) => {
     const { apiUrl, apiToken } = request.body;
@@ -69,12 +73,23 @@ fastify.post('/webhook', async (request, reply) => {
 
         const resourceData = await response.json();
 
-        // Store result for frontend
-        fetchedResults.push({
+        const newResult = {
             id: payload.resourceId,
             receivedAt: new Date().toISOString(),
             data: resourceData,
-        });
+        };
+
+        const existingIndex = fetchedResults.findIndex(item => item.id === payload.resourceId);
+
+        if (existingIndex !== -1) {
+            // Update existing result
+            fetchedResults[existingIndex] = newResult;
+            fastify.log.info(`🔄 Updated resource: ${payload.resourceId}`);
+        } else {
+            // Add new result to the beginning of the array
+            fetchedResults.unshift(newResult);
+            fastify.log.info(`✨ New resource added: ${payload.resourceId}`);
+        }
 
         return { success: true, received: payload, fetched: resourceData };
     } catch (err) {
