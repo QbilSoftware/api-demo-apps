@@ -98,8 +98,7 @@ async function searchOrders() {
 
         currentResponse = await response.json();
         showRawOrders('xml');
-        // displayOrdersCards(data);
-        showStatus(`Found ${Array.isArray(data) ? data.length : (data['hydra:member'] ? data['hydra:member'].length : 1)} orders`, 'success');
+        showStatus(`Found ${Array.isArray(currentResponse) ? data.length : (currentResponse['hydra:member'] ? currentResponse['hydra:member'].length : 1)} orders`, 'success');
     } catch (error) {
         showStatus(`Error searching orders: ${error.message}`, 'error');
     } finally {
@@ -280,7 +279,7 @@ function downloadResponse() {
 function showRawOrders(format) {
     document.getElementById('ordersDisplay').style.display = 'none';
     document.getElementById('responseSection').style.display = 'block';
-    if(format === 'xml'){
+    if(format === 'xml') {
         convertToXML();
         return;
     }
