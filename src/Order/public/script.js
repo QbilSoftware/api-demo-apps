@@ -1,5 +1,5 @@
 let currentResponse = null;
-let currentResponseType = 'json';
+let currentResponseType = 'xml';
 
 // API Configuration
 function getApiConfig() {
@@ -9,42 +9,6 @@ function getApiConfig() {
     };
 }
 
-// Test API Connection
-async function testConnection() {
-    const config = getApiConfig();
-    const button = document.getElementById('testStatus');
-    const statusDiv = document.getElementById('connectionStatus');
-
-    if (!config.url || !config.token) {
-        showStatus('Please enter both API URL and token', 'error');
-        return;
-    }
-
-    button.innerHTML = '<span class="loading"></span>Testing...';
-    button.disabled = true;
-
-    try {
-        const response = await fetch(`${config.url}/orders`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${config.token}`,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            }
-        });
-
-        if (response.ok) {
-            showStatus('✅ Connection successful! API is accessible.', 'success');
-        } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-    } catch (error) {
-        showStatus(`❌ Connection failed: ${error.message}`, 'error');
-    } finally {
-        button.innerHTML = 'Test Connection';
-        button.disabled = false;
-    }
-}
 
 // Show status messages
 function showStatus(message, type) {
@@ -76,7 +40,7 @@ async function getAllOrders() {
     }
 
     try {
-        const response = await fetch(`${config.url}`, {
+        const response = await fetch(`${config.url}/orders`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -87,9 +51,9 @@ async function getAllOrders() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        displayResponse(data);
-        displayOrdersCards(data);
+        currentResponse = await response.json();
+        showRawOrders('xml');
+        // displayOrdersCards(data);
     } catch (error) {
         showStatus(`Error fetching orders: ${error.message}`, 'error');
     } finally {
@@ -121,7 +85,7 @@ async function searchOrders() {
     if (subsidiary) params.append('subsidiary', subsidiary);
 
     try {
-        const response = await fetch(`${config.url}?${params}`, {
+        const response = await fetch(`${config.url}/orders?${params}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -132,9 +96,9 @@ async function searchOrders() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        displayResponse(data);
-        displayOrdersCards(data);
+        currentResponse = await response.json();
+        showRawOrders('xml');
+        // displayOrdersCards(data);
         showStatus(`Found ${Array.isArray(data) ? data.length : (data['hydra:member'] ? data['hydra:member'].length : 1)} orders`, 'success');
     } catch (error) {
         showStatus(`Error searching orders: ${error.message}`, 'error');
@@ -162,7 +126,8 @@ async function getOrderById() {
     }
 
     try {
-        const response = await fetch(`${config.url}${orderId}`, {
+        const url = `${config.url}/orders/${orderId}`;
+        const response = await fetch(`${url}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -173,24 +138,15 @@ async function getOrderById() {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const data = await response.json();
-        displayResponse(data);
-        displayOrdersCards([data]);
+        currentResponse = await response.json();
+        showRawOrders('xml');
+        // displayOrdersCards([data]);
         showStatus('Order retrieved successfully', 'success');
     } catch (error) {
         showStatus(`Error fetching order: ${error.message}`, 'error');
     } finally {
         hideLoader();
     }
-}
-
-// Display API Response
-function displayResponse(data) {
-    currentResponse = data;
-    currentResponseType = 'json';
-
-    document.getElementById('responseSection').style.display = 'none';
-    document.getElementById('responseContent').textContent = JSON.stringify(data, null, 2);
 }
 
 // Display Orders as Cards
@@ -207,62 +163,28 @@ function displayOrdersCards(data) {
         return;
     }
 
-    const ordersHTML = orders.map(order => `
-            <div class="order-card">
-                <div class="order-header">
-                    <span class="order-number">${order.displayNumber || 'N/A'}</span>
-                    <span class="order-type">${order.type || 'Unknown'}</span>
-                </div>
-                <div class="order-details">
-                    <div class="detail-item">
-                        <span class="detail-label">ID</span>
-                        <span class="detail-value">${order.id || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">BL Number</span>
-                        <span class="detail-value">${order.blNumber || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Delivery Mode</span>
-                        <span class="detail-value">${order.orderDeliveryMode || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">License Plate</span>
-                        <span class="detail-value">${order.licensePlate || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Transporter</span>
-                        <span class="detail-value">${order.transporterName || 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Arrival Date</span>
-                        <span class="detail-value">${order.arrivalDate ? new Date(order.arrivalDate).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Departure Date</span>
-                        <span class="detail-value">${order.departureDate ? new Date(order.departureDate).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="detail-label">Responsible Users</span>
-                        <span class="detail-value">${order.usersResponsible ? order.usersResponsible.join(', ') : 'None'}</span>
-                    </div>
-                </div>
-                ${order.notes ? `
-                    <div class="detail-item" style="margin-top: 15px;">
-                        <span class="detail-label">Notes</span>
-                        <span class="detail-value">${order.notes}</span>
-                    </div>
-                ` : ''}
-                ${order.customFields && order.customFields.length > 0 ? `
-                    <div class="custom-fields">
-                        <span class="detail-label">Custom Fields:</span>
-                        ${order.customFields.map(field => `
-                            <span class="custom-field">${field.key}: ${field.value}</span>
-                        `).join('')}
-                    </div>
-                ` : ''}
+    const ordersHTML = orders.map(order => {
+        return `
+        <div class="bg-white rounded-xl shadow p-4 mb-4 border border-gray-200 flex flex-col gap-2">
+            <div class="flex justify-between items-center mb-2">
+                <span class="font-bold text-lg text-gray-800">${order.displayNumber || 'N/A'}</span>
+                <span class="px-2 py-1 rounded bg-gray-100 text-xs text-gray-600">${order.type || 'Unknown'}</span>
             </div>
-        `).join('');
+            <div class="grid grid-cols-2 gap-2 text-sm">
+                <div><span class="font-semibold text-gray-600">ID:</span> ${order.id || 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">BL Number:</span> ${order.blNumber || 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">Delivery Mode:</span> ${order.orderDeliveryMode || 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">License Plate:</span> ${order.licensePlate || 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">Transporter:</span> ${order.transporterName || 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">Arrival Date:</span> ${order.arrivalDate ? new Date(order.arrivalDate).toLocaleDateString() : 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">Departure Date:</span> ${order.departureDate ? new Date(order.departureDate).toLocaleDateString() : 'N/A'}</div>
+                <div><span class="font-semibold text-gray-600">Responsible Users:</span> ${order.usersResponsible ? order.usersResponsible.join(', ') : 'None'}</div>
+            </div>
+            ${order.notes ? `<div class="mt-2 text-gray-700"><span class="font-semibold">Notes:</span> ${order.notes}</div>` : ''}
+            ${order.customFields && order.customFields.length > 0 ? `<div class="mt-2"><span class="font-semibold">Custom Fields:</span> ${order.customFields.map(field => `<span class="ml-2 bg-gray-50 px-2 py-1 rounded text-xs">${field.key}: ${field.value}</span>`).join('')}</div>` : ''}
+        </div>
+        `;
+    }).join('');
 
     ordersList.innerHTML = ordersHTML;
     ordersDisplay.style.display = 'block';
@@ -355,9 +277,13 @@ function downloadResponse() {
     showStatus(`Response downloaded as ${extension.toUpperCase()}`, 'success');
 }
 
-function showRawOrders() {
+function showRawOrders(format) {
     document.getElementById('ordersDisplay').style.display = 'none';
     document.getElementById('responseSection').style.display = 'block';
+    if(format === 'xml'){
+        convertToXML();
+        return;
+    }
     document.getElementById('responseContent').textContent = JSON.stringify(currentResponse, null, 2);
     currentResponseType = 'json';
 }
