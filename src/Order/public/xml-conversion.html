@@ -31,10 +31,23 @@
             <div class="bg-white/95 rounded-xl p-6 shadow card">
                 <h2 class="text-lg font-semibold mb-4">⚙️ API Configuration</h2>
                 <div class="space-y-4">
+                    <!-- Replaced API Base URL with Tenant and Environment fields -->
                     <div>
-                        <label for="apiUrl" class="block text-sm font-medium text-gray-700">API Base URL</label>
-                        <input type="url" id="apiUrl" value="https://demo.test.qbiltrade.com/api/v1"
-                               class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                        <label for="tenant" class="block text-sm font-medium text-gray-700">Tenant</label>
+                        <input type="text" id="tenant" placeholder="e.g. demo" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                    </div>
+                    <div>
+                        <label for="environment" class="block text-sm font-medium text-gray-700">Environment</label>
+                        <select id="environment" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                            <option value="test">Test</option>
+                            <option value="staging">Staging</option>
+                            <option value="localhost">Localhost</option>
+                        </select>
+                    </div>
+                    <!-- Port field hidden by default; only shown when environment=localhost -->
+                    <div id="portField" style="display:none;">
+                        <label for="port" class="block text-sm font-medium text-gray-700">Port (localhost)</label>
+                        <input type="number" id="port" value="3786" disabled class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
                     </div>
                     <div>
                         <label for="apiToken" class="block text-sm font-medium text-gray-700">Authorization Token</label>
@@ -45,6 +58,7 @@
                 </div>
             </div>
 
+            <!-- Order Controls -->
             <div class="bg-white/95 rounded-xl p-6 shadow card">
                 <h2 class="text-lg font-semibold mb-4">Order Controls</h2>
                 <button onclick="getAllOrders()" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition mb-4">
@@ -57,7 +71,7 @@
                         <input type="text" id="searchNumber" placeholder="ORD-12345"
                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
                         <label for="searchSubsidiary" class="block text-sm font-medium text-gray-700 mt-2">Filter by Subsidiary</label>
-                        <input type="text" id="searchSubsidiary" placeholder="/api/v1/subsidiaries/demo"
+                        <input type="text" id="searchSubsidiary" placeholder="demo"
                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
                         <button onclick="searchOrders()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm mt-3">Search Orders</button>
                     </div>
@@ -68,6 +82,21 @@
                         <button onclick="getOrderById()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm mt-3">Get Order by ID</button>
                     </div>
                 </div>
+
+                <!-- New Fetch Order Lines Block -->
+                <h3 class="text-lg font-semibold mt-6 mb-2">Fetch Order Lines</h3>
+                <div class="bg-white/90 rounded-lg p-4 shadow card space-y-2">
+                    <label for="orderLinesOrderId" class="block text-sm font-medium text-gray-700">Order ID</label>
+                    <input type="text" id="orderLinesOrderId" placeholder="Enter order ID" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                    <label for="orderLineType" class="block text-sm font-medium text-gray-700 mt-2">Order Line Type</label>
+                    <select id="orderLineType" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                        <option value="purchase">Purchase</option>
+                        <option value="sales">Sales</option>
+                        <option value="transfer-orders">Transfer</option>
+                        <option value="back-to-back">Back to Back</option>
+                    </select>
+                    <button onclick="fetchOrderLines()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm mt-3">Fetch Order Lines</button>
+                </div>
             </div>
         </div>
 
@@ -77,12 +106,20 @@
             <div id="responseSection" class="hidden bg-white/95 rounded-xl p-6 shadow max-h-[820px] overflow-y-auto">
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-lg font-semibold">📋 API Response</span>
-                    <div class="flex gap-2">
+                    <div class="flex gap-2 flex-wrap">
                         <button onclick="pretifyOrders()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded-lg text-sm">Prettify</button>
                         <button onclick="showRawOrders('json')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm">Json</button>
                         <button onclick="showRawOrders('xml')" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm">XML</button>
                         <button onclick="copyResponse()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg text-sm">Copy</button>
                         <button onclick="downloadResponse()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm">Download</button>
+                    </div>
+                </div>
+                <!-- Documents download controls -->
+                <div id="documentsDownload" class="hidden mb-4">
+                    <label for="documentSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Document</label>
+                    <div class="flex gap-2">
+                        <select id="documentSelect" class="flex-1 rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm"></select>
+                        <button onclick="downloadSelectedDocument()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">Download Document</button>
                     </div>
                 </div>
                 <pre id="responseContent" class="bg-gray-100 rounded-lg p-3 text-sm overflow-x-auto whitespace-pre-wrap"></pre>
