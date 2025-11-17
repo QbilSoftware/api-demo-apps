@@ -1,5 +1,6 @@
 let currentResponse = null;
 let currentResponseType = 'xml';
+let currentOrderId = null; // extracted from lines URIs
 
 // API Configuration
 function getApiConfig() {
@@ -323,46 +324,6 @@ function pretifyOrders() {
     displayOrdersCards(currentResponse);
 }
 
-// Fetch Order Lines
-async function fetchOrderLines() {
-    showLoader();
-    const config = getApiConfig();
-    const orderId = document.getElementById('orderLinesOrderId')?.value.trim();
-    const orderLineType = encodeURIComponent(document.getElementById('orderLineType')?.value.trim());
-    console.log(orderLineType);
-
-    if (!config.url || !config.token) {
-        showStatus('Configure API settings first', 'error');
-        hideLoader();
-        return;
-    }
-    if (!orderId) {
-        showStatus('Enter order ID', 'error');
-        hideLoader();
-        return;
-    }
-
-    try {
-        const endpoint = `${config.url}/api/v1/orders/${orderId}/${orderLineType}`;
-        const response = await fetch(endpoint, {
-            headers: {
-                'Authorization': `Bearer ${config.token}`,
-                'Accept': 'application/json'
-            }
-        });
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        currentResponse = await response.json();
-        showRawOrders('json');
-        showStatus('Order lines fetched', 'success');
-    } catch (e) {
-        showStatus(`Error fetching lines: ${e.message}`, 'error');
-    } finally {
-        hideLoader();
-    }
-}
-
 function populateDocuments(documents) {
     const container = document.getElementById('documentsDownload');
     const select = document.getElementById('documentSelect');
@@ -412,31 +373,118 @@ function downloadSelectedDocument() {
         .catch(err => showStatus(`Download failed: ${err.message}`, 'error'));
 }
 
-// Hook into places where currentResponse is set to populate documents
-function handleDocumentsExtraction() {
-    if (!currentResponse) return;
-    if (Array.isArray(currentResponse)) {
-        // If array of orders, aggregate documents? Use first for simplicity.
-        const first = currentResponse[0];
-        populateDocuments(first && first.documents ? first.documents : []);
-    } else if (currentResponse['hydra:member']) {
-        const first = currentResponse['hydra:member'][0];
-        populateDocuments(first && first.documents ? first.documents : []);
-    } else {
-        populateDocuments(currentResponse.documents || []);
+// Remove obsolete fetchOrderLines (was tied to left panel inputs)
+// Add dynamic lines dropdown population and fetch logic
+function extractDocuments(source) {
+    if (!source) return [];
+    return Array.isArray(source.documents) ? source.documents : [];
+}
+function extractLines(source) {
+    if (!source) return [];
+    if (Array.isArray(source.lines)) return source.lines; // Expect array of URI strings
+    return [];
+}
+function extractOrderIdFromLines(lines) {
+    if (!Array.isArray(lines)) return null;
+    for (const uri of lines) {
+        if (typeof uri !== 'string') continue;
+        const m = uri.match(/\/api\/v1\/orders\/(\d+)/);
+        if (m) return m[1];
     }
+    return null;
+}
+function populateLines(lines) {
+    const container = document.getElementById('linesFetch');
+    const select = document.getElementById('orderLineSelect');
+    if (!container || !select) return;
+    if (!Array.isArray(lines) || lines.length === 0) {
+        container.classList.add('hidden');
+        select.innerHTML = '';
+        currentOrderId = null;
+        return;
+    }
+    const slugs = lines.filter(l => typeof l === 'string').map(l => {
+        const cleaned = decodeURIComponent(l.split('?')[0]);
+        const parts = cleaned.split('/').filter(Boolean);
+        return parts[parts.length - 1];
+    }).filter(Boolean);
+    const seen = new Set();
+    const unique = [];
+    for (const s of slugs) { if (!seen.has(s)) { seen.add(s); unique.push(s); } }
+    currentOrderId = extractOrderIdFromLines(lines) || currentOrderId;
+    if (unique.length === 0 || !currentOrderId) {
+        container.classList.add('hidden');
+        select.innerHTML = '';
+        return;
+    }
+    select.innerHTML = unique.map(slug => `<option value="${slug}">${slugToLabel(slug)}</option>`).join('');
+    container.classList.remove('hidden');
+}
+async function fetchSelectedOrderLines() {
+    const select = document.getElementById('orderLineSelect');
+    const config = getApiConfig();
+    if (!select || !select.value) { showStatus('No order line selected', 'error'); return; }
+    if (!config.url || !config.token) { showStatus('Configure API settings first', 'error'); return; }
+    if (!currentOrderId) { showStatus('Order ID not found in lines', 'error'); return; }
+    const slug = select.value; // e.g. purchase, sales
+    const endpoint = `${config.url}/api/v1/orders/${currentOrderId}/${slug}`;
+    showLoader();
+    try {
+        const resp = await fetch(endpoint, { headers: { 'Authorization': `Bearer ${config.token}`, 'Accept': 'application/json' } });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        currentResponse = await resp.json();
+        showRawOrders('json');
+        showStatus('Order line fetched', 'success');
+    } catch (e) {
+        showStatus(`Failed to fetch line: ${e.message}`, 'error');
+    } finally { hideLoader(); }
+}
+function handleDynamicControls() {
+    // Show document & line controls only when we have exactly one order in the response
+    let target = null;
+    let isSingle = false;
+
+    if (Array.isArray(currentResponse)) {
+        if (currentResponse.length === 1) {
+            target = currentResponse[0];
+            isSingle = true;
+        }
+    } else if (currentResponse && currentResponse['hydra:member']) {
+        const members = currentResponse['hydra:member'];
+        if (Array.isArray(members) && members.length === 1) {
+            target = members[0];
+            isSingle = true;
+        }
+    } else if (currentResponse && typeof currentResponse === 'object') {
+        // Assume a single order object
+        target = currentResponse;
+        isSingle = true;
+    }
+
+    if (!isSingle) {
+        // Hide controls when multi-result
+        populateDocuments([]);
+        populateLines([]);
+        return;
+    }
+
+    populateDocuments(extractDocuments(target));
+    populateLines(extractLines(target));
 }
 
-// Wrap existing setters to call documents extraction
+// Replace previous handleDocumentsExtraction wrappers
 const originalShowRawOrders = showRawOrders;
 showRawOrders = function(format) {
     originalShowRawOrders(format);
-    handleDocumentsExtraction();
+    handleDynamicControls();
 };
 
-// Also invoke after prettify
 const originalPretifyOrders = pretifyOrders;
 pretifyOrders = function() {
     originalPretifyOrders();
-    handleDocumentsExtraction();
+    handleDynamicControls();
 };
+
+function slugToLabel(slug) {
+    return slug.split('-').map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(' ');
+}
