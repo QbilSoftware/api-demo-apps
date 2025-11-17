@@ -3,12 +3,42 @@ let currentResponseType = 'xml';
 
 // API Configuration
 function getApiConfig() {
-    return {
-        url: document.getElementById('apiUrl').value.trim(),
-        token: document.getElementById('apiToken').value.trim()
-    };
+    const tenant = document.getElementById('tenant')?.value.trim();
+    const env = document.getElementById('environment')?.value.trim();
+    const portInput = document.getElementById('port');
+    const token = document.getElementById('apiToken')?.value.trim();
+
+    let url = '';
+    if (tenant && env) {
+        if (env === 'localhost') {
+            const port = portInput ? portInput.value.trim()  : '3786';
+            url = `http://${tenant}.localhost:${port}`;
+        } else if (env === 'test' || env === 'staging') {
+            url = `https://${tenant}.${env}.qbiltrade.com`;
+        }
+    }
+    return { url, token };
 }
 
+// Initialize environment/port interaction
+(function initEnvironmentPortToggle() {
+    const envSelect = document.getElementById('environment');
+    const portInput = document.getElementById('port');
+    const portField = document.getElementById('portField');
+    if (!envSelect || !portInput || !portField) return;
+    const toggle = () => {
+        if (envSelect.value === 'localhost') {
+            portField.style.display = 'block';
+            portInput.disabled = false;
+            if (!portInput.value) portInput.value = '3786';
+        } else {
+            portField.style.display = 'none';
+            portInput.disabled = true;
+        }
+    };
+    envSelect.addEventListener('change', toggle);
+    toggle();
+})();
 
 // Show status messages
 function showStatus(message, type) {
@@ -40,7 +70,7 @@ async function getAllOrders() {
     }
 
     try {
-        const response = await fetch(`${config.url}/orders`, {
+        const response = await fetch(`${config.url}/api/v1/orders`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -52,7 +82,7 @@ async function getAllOrders() {
         }
 
         currentResponse = await response.json();
-        showRawOrders('xml');
+        showRawOrders('json');
         // displayOrdersCards(data);
     } catch (error) {
         showStatus(`Error fetching orders: ${error.message}`, 'error');
@@ -85,7 +115,7 @@ async function searchOrders() {
     if (subsidiary) params.append('subsidiary', subsidiary);
 
     try {
-        const response = await fetch(`${config.url}/orders?${params}`, {
+        const response = await fetch(`${config.url}/api/v1/orders?${params}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
                 'Accept': 'application/json'
@@ -97,7 +127,7 @@ async function searchOrders() {
         }
 
         currentResponse = await response.json();
-        showRawOrders('xml');
+        showRawOrders('json');
         showStatus(`Found ${Array.isArray(currentResponse) ? data.length : (currentResponse['hydra:member'] ? currentResponse['hydra:member'].length : 1)} orders`, 'success');
     } catch (error) {
         showStatus(`Error searching orders: ${error.message}`, 'error');
@@ -125,7 +155,7 @@ async function getOrderById() {
     }
 
     try {
-        const url = `${config.url}/orders/${orderId}`;
+        const url = `${config.url}/api/v1/orders/${orderId}`;
         const response = await fetch(`${url}`, {
             headers: {
                 'Authorization': `Bearer ${config.token}`,
@@ -138,7 +168,7 @@ async function getOrderById() {
         }
 
         currentResponse = await response.json();
-        showRawOrders('xml');
+        showRawOrders('json');
         // displayOrdersCards([data]);
         showStatus('Order retrieved successfully', 'success');
     } catch (error) {
@@ -292,3 +322,121 @@ function pretifyOrders() {
     document.getElementById('ordersDisplay').style.display = 'block';
     displayOrdersCards(currentResponse);
 }
+
+// Fetch Order Lines
+async function fetchOrderLines() {
+    showLoader();
+    const config = getApiConfig();
+    const orderId = document.getElementById('orderLinesOrderId')?.value.trim();
+    const orderLineType = encodeURIComponent(document.getElementById('orderLineType')?.value.trim());
+    console.log(orderLineType);
+
+    if (!config.url || !config.token) {
+        showStatus('Configure API settings first', 'error');
+        hideLoader();
+        return;
+    }
+    if (!orderId) {
+        showStatus('Enter order ID', 'error');
+        hideLoader();
+        return;
+    }
+
+    try {
+        const endpoint = `${config.url}/api/v1/orders/${orderId}/${orderLineType}`;
+        const response = await fetch(endpoint, {
+            headers: {
+                'Authorization': `Bearer ${config.token}`,
+                'Accept': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        currentResponse = await response.json();
+        showRawOrders('json');
+        showStatus('Order lines fetched', 'success');
+    } catch (e) {
+        showStatus(`Error fetching lines: ${e.message}`, 'error');
+    } finally {
+        hideLoader();
+    }
+}
+
+function populateDocuments(documents) {
+    const container = document.getElementById('documentsDownload');
+    const select = document.getElementById('documentSelect');
+    if (!container || !select) return;
+    if (!Array.isArray(documents) || documents.length === 0) {
+        container.classList.add('hidden');
+        select.innerHTML = '';
+        return;
+    }
+    select.innerHTML = documents.map(doc => `<option value="${doc.link}">${doc.name || doc.id}</option>`).join('');
+    container.classList.remove('hidden');
+}
+
+function downloadSelectedDocument() {
+    const select = document.getElementById('documentSelect');
+    const config = getApiConfig();
+    if (!select || !select.value) {
+        showStatus('No document selected', 'error');
+        return;
+    }
+    if (!config.url || !config.token) {
+        showStatus('Configure API settings first', 'error');
+        return;
+    }
+    // If link is relative, prefix with base url
+    const link = select.value.startsWith('http') ? select.value : `${config.url}${select.value}`;
+    fetch(link, {
+        headers: {
+            'Authorization': `Bearer ${config.token}`
+        }
+    })
+        .then(resp => {
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            return resp.blob();
+        })
+        .then(blob => {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            // try to infer filename from link
+            const parts = link.split('/');
+            a.download = parts[parts.length - 1] || 'document';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            showStatus('Document downloaded', 'success');
+        })
+        .catch(err => showStatus(`Download failed: ${err.message}`, 'error'));
+}
+
+// Hook into places where currentResponse is set to populate documents
+function handleDocumentsExtraction() {
+    if (!currentResponse) return;
+    if (Array.isArray(currentResponse)) {
+        // If array of orders, aggregate documents? Use first for simplicity.
+        const first = currentResponse[0];
+        populateDocuments(first && first.documents ? first.documents : []);
+    } else if (currentResponse['hydra:member']) {
+        const first = currentResponse['hydra:member'][0];
+        populateDocuments(first && first.documents ? first.documents : []);
+    } else {
+        populateDocuments(currentResponse.documents || []);
+    }
+}
+
+// Wrap existing setters to call documents extraction
+const originalShowRawOrders = showRawOrders;
+showRawOrders = function(format) {
+    originalShowRawOrders(format);
+    handleDocumentsExtraction();
+};
+
+// Also invoke after prettify
+const originalPretifyOrders = pretifyOrders;
+pretifyOrders = function() {
+    originalPretifyOrders();
+    handleDocumentsExtraction();
+};
