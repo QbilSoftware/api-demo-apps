@@ -27,6 +27,10 @@ fastify.get('/order-xml', (req, reply) => {
     reply.sendFile('xml-conversion.html');
 });
 
+fastify.get('/update-order', (req, reply) => {
+    reply.sendFile('update-order.html');
+});
+
 // Save API config (URL + Token)
 fastify.post('/set-config', async (request, reply) => {
     const { apiUrl, apiToken } = request.body;
