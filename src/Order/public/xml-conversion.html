@@ -1,26 +1,42 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order API</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order API Management</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen bg-gradient-to-br from-indigo-500 to-purple-600 text-gray-800 font-sans overflow-x-hidden">
-
+<body
+        class="min-h-screen bg-gradient-to-br from-[#1d394b] to-[#2e8555] text-gray-800 font-sans overflow-x-hidden"
+>
 <div class="max-w-7xl mx-auto p-6">
     <!-- Header -->
-    <header class="text-center mb-8">
-        <h1 class="text-3xl md:text-4xl font-bold text-white drop-shadow-lg">Order API Management</h1>
-        <p class="text-white/80 mt-2">Query and test order data seamlessly</p>
+    <header class="text-center mb-12">
+        <h1
+                class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg"
+        >
+            📦 Order API Management
+        </h1>
+        <p class="text-white/80 mt-2 text-lg">
+            Query and test order data seamlessly
+        </p>
         <div class="mt-4">
-            <a href="/index.html" class="inline-block px-4 py-2 rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-md hover:bg-white/30 shadow transition">🏠 Back to Home</a>
+            <a
+                    href="https://developers.qbiltrade.com"
+                    class="inline-block px-6 py-2 rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-md hover:bg-white/30 shadow-lg transition hover:scale-105"
+            >🏠 Back to Home</a
+            >
         </div>
     </header>
 
     <!-- Loader -->
-    <div id="loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-        <div class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+    <div
+            id="loader"
+            class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    >
+        <div
+                class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"
+        ></div>
     </div>
 
     <!-- Main Grid -->
@@ -28,58 +44,140 @@
         <!-- Left Panel -->
         <div class="lg:col-span-1 space-y-6">
             <!-- API Configuration -->
-            <div class="bg-white/95 rounded-xl p-6 shadow card">
-                <h2 class="text-lg font-semibold mb-4">⚙️ API Configuration</h2>
+            <div
+                    class="bg-white/95 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition"
+            >
+                <h2 class="text-lg font-semibold mb-4">
+                    ⚙️ API Configuration
+                </h2>
                 <div class="space-y-4">
                     <!-- Replaced API Base URL with Tenant and Environment fields -->
                     <div>
-                        <label for="tenant" class="block text-sm font-medium text-gray-700">Tenant</label>
-                        <input type="text" id="tenant" placeholder="e.g. demo" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                        <label
+                                for="tenant"
+                                class="block text-sm font-medium text-gray-700"
+                        >Tenant</label
+                        >
+                        <input
+                                type="text"
+                                id="tenant"
+                                placeholder="e.g. demo"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
                     </div>
                     <div>
-                        <label for="environment" class="block text-sm font-medium text-gray-700">Environment</label>
-                        <select id="environment" class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                        <label
+                                for="environment"
+                                class="block text-sm font-medium text-gray-700"
+                        >Environment</label
+                        >
+                        <select
+                                id="environment"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        >
                             <option value="test">Test</option>
                             <option value="staging">Staging</option>
                             <option value="localhost">Localhost</option>
                         </select>
                     </div>
                     <!-- Port field hidden by default; only shown when environment=localhost -->
-                    <div id="portField" style="display:none;">
-                        <label for="port" class="block text-sm font-medium text-gray-700">Port (localhost)</label>
-                        <input type="number" id="port" value="3786" disabled class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                    <div id="portField" style="display: none">
+                        <label
+                                for="port"
+                                class="block text-sm font-medium text-gray-700"
+                        >Port (localhost)</label
+                        >
+                        <input
+                                type="number"
+                                id="port"
+                                value="3786"
+                                disabled
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
                     </div>
                     <div>
-                        <label for="apiToken" class="block text-sm font-medium text-gray-700">Authorization Token</label>
-                        <input type="password" id="apiToken" placeholder="Bearer token or API key"
-                               class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
+                        <label
+                                for="apiToken"
+                                class="block text-sm font-medium text-gray-700"
+                        >Authorization Token</label
+                        >
+                        <input
+                                type="password"
+                                id="apiToken"
+                                placeholder="Bearer token or API key"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
                     </div>
-                    <div id="connectionStatus" class="text-sm mt-2 text-gray-600"></div>
+                    <div
+                            id="connectionStatus"
+                            class="text-sm mt-2 text-gray-600"
+                    ></div>
                 </div>
             </div>
 
             <!-- Order Controls -->
-            <div class="bg-white/95 rounded-xl p-6 shadow card">
-                <h2 class="text-lg font-semibold mb-4">Order Controls</h2>
-                <button onclick="getAllOrders()" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium px-4 py-2 rounded-lg transition mb-4">
+            <div
+                    class="bg-white/95 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition"
+            >
+                <h2 class="text-lg font-semibold mb-4">
+                    Order Controls
+                </h2>
+                <button
+                        onclick="getAllOrders()"
+                        class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white font-medium px-4 py-2 rounded-lg transition mb-4"
+                >
                     <span id="testStatus">Get All Orders</span>
                 </button>
                 <h3 class="text-lg font-semibold mb-2">Filters</h3>
                 <div class="space-y-4">
-                    <div class="bg-white/90 rounded-lg p-4 shadow card">
-                        <label for="searchNumber" class="block text-sm font-medium text-gray-700">Search by Display Number</label>
-                        <input type="text" id="searchNumber" placeholder="ORD-12345"
-                               class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
-                        <label for="searchSubsidiary" class="block text-sm font-medium text-gray-700 mt-2">Filter by Subsidiary</label>
-                        <input type="text" id="searchSubsidiary" placeholder="demo"
-                               class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
-                        <button onclick="searchOrders()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm mt-3">Search Orders</button>
+                    <div class="bg-white/90 rounded-xl p-4 shadow">
+                        <label
+                                for="searchNumber"
+                                class="block text-sm font-medium text-gray-700"
+                        >Search by Display Number</label
+                        >
+                        <input
+                                type="text"
+                                id="searchNumber"
+                                placeholder="ORD-12345"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                        <label
+                                for="searchSubsidiary"
+                                class="block text-sm font-medium text-gray-700 mt-2"
+                        >Filter by Subsidiary</label
+                        >
+                        <input
+                                type="text"
+                                id="searchSubsidiary"
+                                placeholder="demo"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                        <button
+                                onclick="searchOrders()"
+                                class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm mt-3"
+                        >
+                            Search Orders
+                        </button>
                     </div>
-                    <div class="bg-white/90 rounded-lg p-4 shadow card">
-                        <label for="orderId" class="block text-sm font-medium text-gray-700">Get Specific Order</label>
-                        <input type="text" id="orderId" placeholder="Enter order ID"
-                               class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm">
-                        <button onclick="getOrderById()" class="w-full bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm mt-3">Get Order by ID</button>
+                    <div class="bg-white/90 rounded-xl p-4 shadow">
+                        <label
+                                for="orderId"
+                                class="block text-sm font-medium text-gray-700"
+                        >Get Specific Order</label
+                        >
+                        <input
+                                type="text"
+                                id="orderId"
+                                placeholder="Enter order ID"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                        <button
+                                onclick="getOrderById()"
+                                class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm mt-3"
+                        >
+                            Get Order by ID
+                        </button>
                     </div>
                 </div>
             </div>
@@ -88,42 +186,112 @@
         <!-- Right Panel -->
         <div class="lg:col-span-2 space-y-6">
             <!-- Response Section -->
-            <div id="responseSection" class="hidden bg-white/95 rounded-xl p-6 shadow max-h-[820px] overflow-y-auto">
+            <div
+                    id="responseSection"
+                    class="hidden bg-white/95 rounded-2xl p-6 shadow-lg max-h-[820px] overflow-y-auto"
+            >
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-lg font-semibold">📋 API Response</span>
+                            <span class="text-lg font-semibold"
+                            >📋 API Response</span
+                            >
                     <div class="flex gap-2 flex-wrap">
-                        <button onclick="pretifyOrders()" class="bg-sky-600 hover:bg-sky-700 text-white px-3 py-1 rounded-lg text-sm">Prettify</button>
-                        <button onclick="showRawOrders('json')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm">Json</button>
-                        <button onclick="showRawOrders('xml')" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm">XML</button>
-                        <button onclick="copyResponse()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-lg text-sm">Copy</button>
-                        <button onclick="downloadResponse()" class="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-lg text-sm">Download</button>
+                        <button
+                                onclick="pretifyOrders()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            Prettify
+                        </button>
+                        <button
+                                onclick="showRawOrders('json')"
+                                class="bg-[#466275] hover:bg-[#3a5060] text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            Json
+                        </button>
+                        <button
+                                onclick="showRawOrders('xml')"
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            XML
+                        </button>
+                        <button
+                                onclick="copyResponse()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            Copy
+                        </button>
+                        <button
+                                onclick="downloadResponse()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            Download
+                        </button>
                     </div>
                 </div>
                 <!-- Documents download controls -->
                 <div id="documentsDownload" class="hidden mb-4">
-                    <label for="documentSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Document</label>
+                    <label
+                            for="documentSelect"
+                            class="block text-sm font-medium text-gray-700 mb-1"
+                    >Select Document</label
+                    >
                     <div class="flex gap-2">
-                        <select id="documentSelect" class="flex-1 rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm"></select>
-                        <button onclick="downloadSelectedDocument()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm">Download Document</button>
+                        <select
+                                id="documentSelect"
+                                class="flex-1 rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        ></select>
+                        <button
+                                onclick="downloadSelectedDocument()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm"
+                        >
+                            Download Document
+                        </button>
                     </div>
                 </div>
                 <!-- Order lines fetch controls -->
                 <div id="linesFetch" class="hidden mb-4">
-                    <label for="orderLineSelect" class="block text-sm font-medium text-gray-700 mb-1">Select Order Line</label>
+                    <label
+                            for="orderLineSelect"
+                            class="block text-sm font-medium text-gray-700 mb-1"
+                    >Select Order Line</label
+                    >
                     <div class="flex gap-2">
-                        <select id="orderLineSelect" class="flex-1 rounded-lg border-gray-300 shadow-sm focus:ring-indigo-500 focus:border-indigo-500 p-2 text-sm"></select>
-                        <button onclick="fetchSelectedOrderLines()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg text-sm">Fetch Line</button>
+                        <select
+                                id="orderLineSelect"
+                                class="flex-1 rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        ></select>
+                        <button
+                                onclick="fetchSelectedOrderLines()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm"
+                        >
+                            Fetch Line
+                        </button>
                     </div>
                 </div>
-                <pre id="responseContent" class="bg-gray-100 rounded-lg p-3 text-sm overflow-x-auto whitespace-pre-wrap"></pre>
+                <pre
+                        id="responseContent"
+                        class="bg-gray-100 rounded-lg p-3 text-sm overflow-x-auto whitespace-pre-wrap"
+                ></pre>
             </div>
             <!-- Orders Display -->
-            <div id="ordersDisplay" class="hidden bg-white/95 rounded-xl p-6 shadow max-h-[700px] overflow-y-auto">
+            <div
+                    id="ordersDisplay"
+                    class="hidden bg-white/95 rounded-2xl p-6 shadow-lg max-h-[700px] overflow-y-auto"
+            >
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-xl font-semibold">📦 Orders</h2>
                     <div class="flex gap-2">
-                        <button onclick="showRawOrders('json')" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg text-sm">Json</button>
-                        <button onclick="showRawOrders('xml')" class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm">XML</button>
+                        <button
+                                onclick="showRawOrders('json')"
+                                class="bg-[#466275] hover:bg-[#3a5060] text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            Json
+                        </button>
+                        <button
+                                onclick="showRawOrders('xml')"
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg text-sm"
+                        >
+                            XML
+                        </button>
                     </div>
                 </div>
                 <div id="ordersList" class="space-y-3"></div>
@@ -132,14 +300,10 @@
     </div>
 
     <!-- Footer -->
-    <footer class="text-center mt-12 p-6 bg-white/10 rounded-xl backdrop-blur-md">
-        <p class="text-white text-sm">&copy; 2025 API Sample Apps</p>
-        <div class="flex justify-center gap-6 mt-3 flex-wrap">
-            <a href="/index.html" class="text-white/80 hover:text-white text-sm font-medium">Home</a>
-            <a href="#" class="text-white/80 hover:text-white text-sm font-medium">Documentation</a>
-            <a href="#" class="text-white/80 hover:text-white text-sm font-medium">Support</a>
-            <a href="#" class="text-white/80 hover:text-white text-sm font-medium">API Reference</a>
-        </div>
+    <footer
+            class="text-center mt-12 p-6 bg-white/10 rounded-xl backdrop-blur-md"
+    >
+        <p class="text-white text-sm">&copy; 2026 API Sample Apps</p>
     </footer>
 </div>
 
