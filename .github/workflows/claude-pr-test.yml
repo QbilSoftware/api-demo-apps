@@ -145,7 +145,8 @@ jobs:
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           settings: /tmp/claude-settings.json
-          claude_args: --mcp-config /tmp/mcp-playwright.json
+          claude_args: --mcp-config /tmp/mcp-playwright.json --debug
+          show_full_output: true
           prompt: |
             You are running a QA review of a PR in CI. Execute this exact
             sequence (the recording tools must be called by YOU at the top
