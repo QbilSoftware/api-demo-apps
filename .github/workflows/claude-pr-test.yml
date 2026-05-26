@@ -53,12 +53,16 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Playwright browsers (matching @playwright/mcp)
-        # Use the playwright version that @playwright/mcp ships with so the
-        # browser cache path matches what the MCP server expects at runtime.
-        # Also install chromium-headless-shell because the MCP config runs
-        # with --headless, which newer Playwright (1.49+) split out.
-        run: npx --yes -p @playwright/mcp@latest playwright install --with-deps chromium chromium-headless-shell
+      - name: Install Playwright system deps
+        # The Playwright bundle handles the browser binary itself, but the
+        # OS-level deps (libnss3, libatk, etc.) still need installing.
+        run: npx --yes playwright install-deps chromium
+      - name: Install chrome-for-testing for @playwright/mcp
+        # @playwright/mcp uses Google's chrome-for-testing build (not the
+        # vanilla `playwright install chromium` binary) and ships its own
+        # installer to fetch it. The error message in the previous run
+        # literally tells us this command — it's the canonical one.
+        run: npx --yes @playwright/mcp@latest install-browser chrome-for-testing
 
       - name: Write PR diff for the skill
         env:
