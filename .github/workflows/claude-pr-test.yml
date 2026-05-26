@@ -28,7 +28,7 @@ jobs:
         (github.event.action == 'labeled' && github.event.label.name == 'test')
         || (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'test'))
       )
-    runs-on: ubuntu-latest-m
+    runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
       contents: write
