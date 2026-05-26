@@ -53,8 +53,12 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Playwright Chromium
-        run: npx --yes playwright install --with-deps chromium
+      - name: Install Playwright browsers (matching @playwright/mcp)
+        # Use the playwright version that @playwright/mcp ships with so the
+        # browser cache path matches what the MCP server expects at runtime.
+        # Also install chromium-headless-shell because the MCP config runs
+        # with --headless, which newer Playwright (1.49+) split out.
+        run: npx --yes -p @playwright/mcp@latest playwright install --with-deps chromium chromium-headless-shell
 
       - name: Write PR diff for the skill
         env:
