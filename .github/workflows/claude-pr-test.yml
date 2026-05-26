@@ -1,0 +1,353 @@
+name: Claude PR Test
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+    paths:
+      - src/**
+      - templates/**
+      - config/**
+      - assets/**
+      - migrations/**
+      - public/**
+      - e2e/**
+      - .claude/skills/test-review/**
+      - .github/workflows/claude-pr-test.yml
+      - .github/actions/setup-app-server/**
+
+concurrency:
+  group: claude-pr-test-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Claude test-review on PR
+    if: >-
+      github.event.pull_request.draft == false
+      && (
+        (github.event.action == 'labeled' && github.event.label.name == 'test')
+        || (github.event.action == 'synchronize' && contains(github.event.pull_request.labels.*.name, 'test'))
+      )
+    runs-on: ubuntu-latest-m
+    timeout-minutes: 25
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      id-token: write
+      actions: read
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      RUN_ID: ${{ github.run_id }}
+
+    steps:
+      - name: Checkout PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 1
+          show-progress: false
+
+      - name: Setup App Server
+        uses: ./.github/actions/setup-app-server
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Playwright Chromium
+        run: npx --yes playwright install --with-deps chromium
+
+      - name: Write PR diff for the skill
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh pr diff "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" > /tmp/pr-diff.txt
+          gh pr diff "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" --name-only > /tmp/pr-changed-files.txt
+          if [ ! -s /tmp/pr-changed-files.txt ]; then
+            echo "Empty diff — gh pr diff produced no output. Aborting."
+            exit 1
+          fi
+          echo "Changed files:"
+          cat /tmp/pr-changed-files.txt
+
+      - name: Write Playwright MCP config and Claude settings
+        env:
+          PW_OUTPUT_DIR: ${{ github.workspace }}/pw-output
+        run: |
+          mkdir -p "${PW_OUTPUT_DIR}"
+
+          # MCP server config — consumed by `--mcp-config` flag
+          cat > /tmp/mcp-playwright.json <<JSON
+          {
+            "mcpServers": {
+              "playwright": {
+                "command": "npx",
+                "args": [
+                  "-y", "@playwright/mcp@latest",
+                  "--headless",
+                  "--browser", "chromium",
+                  "--caps", "devtools",
+                  "--isolated",
+                  "--viewport-size", "1920x1080",
+                  "--output-dir", "${PW_OUTPUT_DIR}",
+                  "--save-session"
+                ]
+              }
+            }
+          }
+          JSON
+
+          # Claude Code settings — consumed by the action's `settings:` input.
+          # Using a structured JSON file avoids the shell-tokenisation pitfalls
+          # of passing `--allowed-tools "Bash(foo bar)"` through claude_args.
+          cat > /tmp/claude-settings.json <<'JSON'
+          {
+            "permissions": {
+              "allow": [
+                "Read",
+                "Glob",
+                "Grep",
+                "Skill",
+                "Bash(git diff*)",
+                "Bash(git log*)",
+                "Bash(cat*)",
+                "Bash(echo*)",
+                "Bash(tee*)",
+                "Bash(mkdir*)",
+                "Bash(ls*)",
+                "Bash(find*)",
+                "mcp__playwright__browser_navigate",
+                "mcp__playwright__browser_take_screenshot",
+                "mcp__playwright__browser_click",
+                "mcp__playwright__browser_type",
+                "mcp__playwright__browser_fill_form",
+                "mcp__playwright__browser_select_option",
+                "mcp__playwright__browser_snapshot",
+                "mcp__playwright__browser_wait_for",
+                "mcp__playwright__browser_hover",
+                "mcp__playwright__browser_press_key",
+                "mcp__playwright__browser_evaluate",
+                "mcp__playwright__browser_console_messages",
+                "mcp__playwright__browser_network_requests",
+                "mcp__playwright__browser_mouse_click_xy",
+                "mcp__playwright__browser_close",
+                "mcp__playwright__browser_start_video",
+                "mcp__playwright__browser_stop_video",
+                "mcp__playwright__browser_start_tracing",
+                "mcp__playwright__browser_stop_tracing"
+              ]
+            }
+          }
+          JSON
+
+      - name: Run Claude test-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          settings: /tmp/claude-settings.json
+          claude_args: --mcp-config /tmp/mcp-playwright.json
+          prompt: |
+            You are running a QA review of a PR in CI. Execute this exact
+            sequence (the recording tools must be called by YOU at the top
+            level — not delegated to the skill, because the skill's own
+            allowed-tools list does not include them):
+
+            1. Call `mcp__playwright__browser_navigate` once with
+               `url: "http://localhost:8080/"` to warm up the browser
+               context. Then call `mcp__playwright__browser_start_video` with
+               no arguments to start recording.
+
+            2. Invoke the `test-review` skill via the Skill tool. The skill
+               is at `.claude/skills/test-review/SKILL.md`. It will detect CI
+               mode from the `BASE_URL` env var (already set to
+               `http://localhost:8080`) and read the diff from
+               `/tmp/pr-diff.txt` + `/tmp/pr-changed-files.txt`. The skill
+               will drive the browser, take screenshots with zero-padded
+               filenames (`01-...png`, `02-...png`, ...), and write its
+               report to `/tmp/test-review-report.md` using bash echo/tee.
+
+            3. After the skill returns (regardless of pass/fail), call
+               `mcp__playwright__browser_stop_video` to finalize the .webm,
+               then `mcp__playwright__browser_close` to release the browser.
+               Do this even if the skill reported failures — the recording
+               is the most diagnostic artifact.
+
+            If any of the MCP tool calls return "permission not granted",
+            stop immediately and write a one-line note to
+            `/tmp/test-review-report.md` saying which tool was denied —
+            that's the bug the workflow needs to fix.
+        env:
+          BASE_URL: http://localhost:8080
+          AWS_ACCESS_KEY_ID: x
+          AWS_SECRET_ACCESS_KEY: x
+          AWS_DEFAULT_REGION: eu-central-1
+
+      - name: Locate Playwright recording
+        if: always()
+        run: |
+          WEBM=$(find pw-output -name '*.webm' 2>/dev/null | head -1 || true)
+          if [ -n "${WEBM}" ]; then
+            mv "${WEBM}" pw-output/session.webm
+            echo "Renamed ${WEBM} -> pw-output/session.webm"
+          else
+            echo "No .webm produced by Playwright MCP"
+          fi
+
+      - name: Push screenshots and video to ci-screenshots branch
+        if: always()
+        id: push_media
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -uo pipefail
+
+          shopt -s nullglob
+          PNGS=(pw-output/*.png)
+          if [ ${#PNGS[@]} -eq 0 ] && [ ! -f pw-output/session.webm ]; then
+            echo "No media to push"
+            exit 0
+          fi
+
+          # Publish the media_base_url early so the comment step can use it
+          # even if the push itself fails partway.
+          DEST_REL="pr-${PR_NUMBER}/run-${RUN_ID}"
+          BASE="https://raw.githubusercontent.com/${GITHUB_REPOSITORY}/ci-screenshots/${DEST_REL}"
+          echo "media_base_url=${BASE}" >> "${GITHUB_OUTPUT}"
+
+          git config --global user.email "claude-pr-test@users.noreply.github.com"
+          git config --global user.name "claude-pr-test"
+
+          SCRATCH=$(mktemp -d)
+          if ! git clone --branch ci-screenshots --single-branch --depth 1 \
+              "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" \
+              "${SCRATCH}" 2>/dev/null; then
+            echo "::warning::ci-screenshots branch does not exist on origin. Run the one-time bootstrap from the plan file before merging this workflow."
+            exit 0
+          fi
+
+          DEST="${SCRATCH}/${DEST_REL}"
+          rm -rf "${DEST}"
+          mkdir -p "${DEST}"
+
+          for f in "${PNGS[@]}"; do
+            cp "${f}" "${DEST}/"
+          done
+          if [ -f pw-output/session.webm ]; then
+            cp pw-output/session.webm "${DEST}/"
+          fi
+
+          cd "${SCRATCH}"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No staged changes"
+            exit 0
+          fi
+
+          git commit -m "[skip ci] screenshots for PR #${PR_NUMBER} run ${RUN_ID}"
+
+          # Retry once with rebase in case a concurrent run pushed first.
+          for attempt in 1 2; do
+            if git push origin ci-screenshots; then
+              echo "Pushed on attempt ${attempt}"
+              break
+            fi
+            if [ "${attempt}" -eq 2 ]; then
+              echo "::error::Failed to push to ci-screenshots after rebase. media_base_url may point to missing files."
+              exit 1
+            fi
+            echo "Push rejected; pulling --rebase and retrying"
+            git pull --rebase origin ci-screenshots
+          done
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: claude-pr-test-${{ env.PR_NUMBER }}-${{ env.RUN_ID }}
+          path: |
+            pw-output/
+            /tmp/test-review-report.md
+            /tmp/pr-diff.txt
+            /tmp/pr-changed-files.txt
+            e2e/logs/
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Post / update PR comment
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          MEDIA_BASE_URL: ${{ steps.push_media.outputs.media_base_url }}
+        with:
+          script: |
+            const fs = require('fs');
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const prNumber = parseInt(process.env.PR_NUMBER, 10);
+            const runId = process.env.RUN_ID;
+            const mediaBase = process.env.MEDIA_BASE_URL || '';
+            const runUrl = `${context.serverUrl}/${owner}/${repo}/actions/runs/${runId}`;
+
+            if (!Number.isFinite(prNumber)) {
+              core.setFailed(`PR_NUMBER env var is invalid: "${process.env.PR_NUMBER}"`);
+              return;
+            }
+
+            const reportPath = '/tmp/test-review-report.md';
+            let report = fs.existsSync(reportPath)
+              ? fs.readFileSync(reportPath, 'utf8').trim()
+              : '_No report produced — see workflow logs._';
+
+            // Rewrite relative image refs (both markdown and HTML) → orphan-branch URLs.
+            // Strip any query string / fragment via URL parsing; flatten subdirs.
+            const stripQuery = (p) => p.split(/[?#]/)[0];
+            const flatten = (p) => stripQuery(p).split('/').pop();
+
+            if (mediaBase) {
+              // Markdown form: ![alt](relative.png)
+              report = report.replace(
+                /!\[((?:\\.|[^\]])*)\]\(((?!https?:|data:)[^)\s]+?\.(?:png|jpg|jpeg|gif|webp))(?:\s+"[^"]*")?\)/gi,
+                (_, alt, file) => `![${alt}](${mediaBase}/${flatten(file)})`
+              );
+              // HTML form: <img src="relative.png" …>
+              report = report.replace(
+                /<img\b([^>]*?)\bsrc=(["'])((?!https?:|data:)[^"']+?\.(?:png|jpg|jpeg|gif|webp))\2/gi,
+                (_, pre, q, file) => `<img${pre}src=${q}${mediaBase}/${flatten(file)}${q}`
+              );
+            }
+
+            const marker = '<!-- claude-pr-test-comment -->';
+            const footerParts = [`[Trace artifact](${runUrl})`];
+            if (mediaBase) {
+              footerParts.unshift(`📹 [Watch session](${mediaBase}/session.webm)`);
+            }
+
+            const header = `### 🔍 Test Review — pr-${prNumber} · run #${runId}`;
+            const footer = `---\n${footerParts.join(' · ')}`;
+            // GitHub comment hard-limit is 65,536 chars. Stay under with headroom.
+            const MAX_BODY = 60000;
+            const overhead = `${marker}\n${header}\n\n\n\n${footer}`.length;
+            const truncationNote = '\n\n_…report truncated — see the artifact for the full version._';
+            let safeReport = report;
+            if (overhead + safeReport.length > MAX_BODY) {
+              const allowed = MAX_BODY - overhead - truncationNote.length;
+              safeReport = safeReport.slice(0, Math.max(0, allowed)) + truncationNote;
+            }
+
+            const body = [marker, header, '', safeReport, '', footer].join('\n');
+
+            // Paginate listComments — default page size is 30; long-running PRs exceed it.
+            const comments = await github.paginate(github.rest.issues.listComments, {
+              owner, repo, issue_number: prNumber, per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner, repo, comment_id: existing.id, body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: prNumber, body,
+              });
+            }
