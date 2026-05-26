@@ -293,7 +293,7 @@ Always write the report. If the browser failed entirely, write a minimal report 
 - ⚠️ PASS WITH CONCERNS — no Critical, but one or more Important findings.
 - ✅ PASS — Minor findings only, or none.
 
-**Screenshot links in CI:** reference screenshots as plain markdown links — `[caption](02-orders-search.png)` — filename only, no leading `!`. The CI comment script rewrites every relative `.png` / `.webm` / `.mp4` link to the workflow's artifact-zip download URL, so each caption stays clickable and downloads the bundle containing that file.
+**Screenshot links in CI:** reference screenshots as plain markdown links — `[caption](02-orders-search.png)` — filename only, no leading `!`. The CI comment script uploads each screenshot to GitHub's user-attachments host and rewrites every relative `.png` / `.webm` / `.mp4` link to that file's permanent URL. Each caption ends up linking directly to the individual screenshot. If a particular file's upload failed, the caption falls back to bold-only text (no link) — so the report still reads sensibly even when some assets are missing.
 
 ```
 ## 🔍 Test Review — [one-line PR description]
