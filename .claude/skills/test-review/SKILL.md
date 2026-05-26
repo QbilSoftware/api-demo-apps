@@ -77,8 +77,11 @@ other routes serve static files unchanged by server edits.
      - WARN = console warnings or 4xx responses
      - PASS = everything else
    - One `## /route` section per visited route, with the screenshots
-     inlined as `![caption](01-update-order-initial.png)` (filename
-     only — the workflow rewrites these to absolute URLs).
+     referenced as plain markdown links (no leading `!`):
+     `[caption](01-update-order-initial.png)` — filename only, the
+     workflow rewrites these to absolute URLs. Reviewers click through
+     to view; we don't render images inline in the comment because
+     thumbnails of 1920×1080 captures dominate the comment height.
    - A `## Diagnostics` section per route listing any console errors
      / failed local requests in fenced code blocks.
    - A trailing `## Files reviewed` section echoing

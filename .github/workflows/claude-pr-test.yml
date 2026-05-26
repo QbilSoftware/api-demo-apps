@@ -336,15 +336,21 @@ jobs:
             const flatten = (p) => stripQuery(p).split('/').pop();
 
             if (mediaBase) {
-              // Markdown form: ![alt](relative.png)
+              // Match either ![alt](file.ext) OR [text](file.ext) — the
+              // skill is instructed to use the plain-link form (no `!`)
+              // so screenshots show as click-through links rather than
+              // huge inline thumbnails. We still strip a leading `!` if
+              // it appears, downgrading any stray inline-image references
+              // to links for consistency.
               report = report.replace(
-                /!\[((?:\\.|[^\]])*)\]\(((?!https?:|data:)[^)\s]+?\.(?:png|jpg|jpeg|gif|webp))(?:\s+"[^"]*")?\)/gi,
-                (_, alt, file) => `![${alt}](${mediaBase}/${flatten(file)})`
+                /!?\[((?:\\.|[^\]])*)\]\(((?!https?:|data:)[^)\s]+?\.(?:png|jpg|jpeg|gif|webp))(?:\s+"[^"]*")?\)/gi,
+                (_, alt, file) => `[${alt}](${mediaBase}/${flatten(file)})`
               );
-              // HTML form: <img src="relative.png" …>
+              // HTML <img src="relative.png" …> → markdown link, since we
+              // don't want inline rendering at all.
               report = report.replace(
-                /<img\b([^>]*?)\bsrc=(["'])((?!https?:|data:)[^"']+?\.(?:png|jpg|jpeg|gif|webp))\2/gi,
-                (_, pre, q, file) => `<img${pre}src=${q}${mediaBase}/${flatten(file)}${q}`
+                /<img\b[^>]*?\bsrc=(["'])((?!https?:|data:)[^"']+?\.(?:png|jpg|jpeg|gif|webp))\1[^>]*?(?:\balt=(["'])([^"']*)\3)?[^>]*>/gi,
+                (_, _q, file, __q, alt) => `[${alt || flatten(file)}](${mediaBase}/${flatten(file)})`
               );
             }
 
