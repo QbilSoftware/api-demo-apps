@@ -191,16 +191,29 @@ jobs:
           AWS_SECRET_ACCESS_KEY: x
           AWS_DEFAULT_REGION: eu-central-1
 
-      - name: Locate Playwright recording
+      - name: Locate Playwright recording and convert to GIF
         if: always()
         run: |
+          set -uo pipefail
           WEBM=$(find pw-output -name '*.webm' 2>/dev/null | head -1 || true)
-          if [ -n "${WEBM}" ]; then
-            mv "${WEBM}" pw-output/session.webm
-            echo "Renamed ${WEBM} -> pw-output/session.webm"
-          else
+          if [ -z "${WEBM}" ]; then
             echo "No .webm produced by Playwright MCP"
+            exit 0
           fi
+          mv "${WEBM}" pw-output/session.webm
+          echo "Renamed ${WEBM} -> pw-output/session.webm"
+
+          # GitHub strips <video> from PR comments and won't auto-embed
+          # raw.githubusercontent.com/*.webm. A GIF embedded via markdown
+          # image syntax DOES render inline, so we transcode here.
+          # fps=6 + lanczos + a generated palette = readable UI motion
+          # at ~5-10MB for a 60-90s session.
+          ffmpeg -y -hide_banner -loglevel error \
+            -i pw-output/session.webm \
+            -vf "fps=6,scale=1024:-1:flags=lanczos,split[s0][s1];[s0]palettegen=max_colors=128[p];[s1][p]paletteuse" \
+            pw-output/session.gif \
+            && ls -lh pw-output/session.webm pw-output/session.gif \
+            || echo "::warning::ffmpeg failed; the comment will fall back to the .webm download link only"
 
       - name: Push screenshots and video to ci-screenshots branch
         if: always()
@@ -249,6 +262,9 @@ jobs:
           done
           if [ -f pw-output/session.webm ]; then
             cp pw-output/session.webm "${DEST}/"
+          fi
+          if [ -f pw-output/session.gif ]; then
+            cp pw-output/session.gif "${DEST}/"
           fi
 
           cd "${SCRATCH}"
@@ -335,14 +351,20 @@ jobs:
             const marker = '<!-- claude-pr-test-comment -->';
             const footerParts = [`[Trace artifact](${runUrl})`];
             if (mediaBase) {
-              footerParts.unshift(`📹 [Watch session](${mediaBase}/session.webm)`);
+              footerParts.unshift(`📥 [Download .webm](${mediaBase}/session.webm)`);
             }
+
+            // GIF embeds inline in PR comments via markdown image syntax;
+            // .webm and <video> are stripped by GitHub's comment sanitizer.
+            const sessionEmbed = mediaBase
+              ? `\n\n### 📹 Session recording\n\n![session recording](${mediaBase}/session.gif)`
+              : '';
 
             const header = `### 🔍 Test Review — pr-${prNumber} · run #${runId}`;
             const footer = `---\n${footerParts.join(' · ')}`;
             // GitHub comment hard-limit is 65,536 chars. Stay under with headroom.
             const MAX_BODY = 60000;
-            const overhead = `${marker}\n${header}\n\n\n\n${footer}`.length;
+            const overhead = `${marker}\n${header}\n\n\n${sessionEmbed}\n\n${footer}`.length;
             const truncationNote = '\n\n_…report truncated — see the artifact for the full version._';
             let safeReport = report;
             if (overhead + safeReport.length > MAX_BODY) {
@@ -350,7 +372,7 @@ jobs:
               safeReport = safeReport.slice(0, Math.max(0, allowed)) + truncationNote;
             }
 
-            const body = [marker, header, '', safeReport, '', footer].join('\n');
+            const body = [marker, header, '', safeReport, sessionEmbed, '', footer].join('\n');
 
             // Paginate listComments — default page size is 30; long-running PRs exceed it.
             const comments = await github.paginate(github.rest.issues.listComments, {
