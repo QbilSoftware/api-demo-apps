@@ -53,8 +53,16 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Playwright Chromium
-        run: npx --yes playwright install --with-deps chromium
+      - name: Install Playwright system deps
+        # The Playwright bundle handles the browser binary itself, but the
+        # OS-level deps (libnss3, libatk, etc.) still need installing.
+        run: npx --yes playwright install-deps chromium
+      - name: Install chrome-for-testing for @playwright/mcp
+        # @playwright/mcp uses Google's chrome-for-testing build (not the
+        # vanilla `playwright install chromium` binary) and ships its own
+        # installer to fetch it. The error message in the previous run
+        # literally tells us this command — it's the canonical one.
+        run: npx --yes @playwright/mcp@latest install-browser chrome-for-testing
 
       - name: Write PR diff for the skill
         env:
