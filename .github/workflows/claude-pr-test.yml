@@ -210,12 +210,18 @@ jobs:
         run: |
           set -uo pipefail
 
+          # Playwright MCP with --save-session nests artifacts under
+          # pw-output/<session-id>/, so recurse to find every PNG. Flatten
+          # paths on copy (basename only) — the github-script comment
+          # rewriter already drops directory parts when building image URLs.
           shopt -s nullglob
-          PNGS=(pw-output/*.png)
+          mapfile -t PNGS < <(find pw-output -type f -name '*.png' 2>/dev/null)
           if [ ${#PNGS[@]} -eq 0 ] && [ ! -f pw-output/session.webm ]; then
             echo "No media to push"
             exit 0
           fi
+          echo "Found ${#PNGS[@]} PNG(s) to publish:"
+          printf '  %s\n' "${PNGS[@]}"
 
           # Publish the media_base_url early so the comment step can use it
           # even if the push itself fails partway.
@@ -239,7 +245,7 @@ jobs:
           mkdir -p "${DEST}"
 
           for f in "${PNGS[@]}"; do
-            cp "${f}" "${DEST}/"
+            cp "${f}" "${DEST}/$(basename "${f}")"
           done
           if [ -f pw-output/session.webm ]; then
             cp pw-output/session.webm "${DEST}/"
