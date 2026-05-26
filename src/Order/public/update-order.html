@@ -1,0 +1,1036 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Update Order - API Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"
+            defer
+    ></script>
+</head>
+<body
+        class="min-h-screen bg-gradient-to-br from-[#1d394b] to-[#2e8555] font-sans text-gray-900"
+>
+<!-- Loader -->
+<div
+        id="loader"
+        class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+>
+    <div
+            class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"
+    ></div>
+</div>
+
+<div class="max-w-7xl mx-auto p-6">
+    <!-- Header -->
+    <header class="text-center mb-8 relative">
+        <h1
+                class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg flex justify-center items-center gap-2"
+        >
+            <i class="fas fa-edit"></i> Update Order
+        </h1>
+        <p class="text-white/80 mt-2">
+            Modify and update order information
+        </p>
+        <div class="mt-4">
+            <a
+                    href="https://developers.qbiltrade.com"
+                    class="inline-block px-4 py-2 rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-md hover:bg-white/30 shadow transition"
+            >
+                🏠 Back to Home
+            </a>
+        </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Panel -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- API Configuration -->
+            <div
+                    class="bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition"
+            >
+                <h3
+                        class="text-xl font-semibold flex items-center gap-2 mb-4"
+                >
+                    <i class="fas fa-cog"></i> API Configuration
+                </h3>
+                <form class="space-y-4">
+                    <div>
+                        <label
+                                for="apiUrl"
+                                class="block text-sm font-medium text-gray-700"
+                        >API Base URL</label
+                        >
+                        <input
+                                type="text"
+                                id="apiUrl"
+                                placeholder="https://demo.qbiltrade.com/api/v1/orders"
+                                value="https://demo.qbiltrade.com/api/v1/orders"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label
+                                for="apiToken"
+                                class="block text-sm font-medium text-gray-700"
+                        >Bearer Token</label
+                        >
+                        <input
+                                type="password"
+                                id="apiToken"
+                                placeholder="Enter your API token"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <button
+                            type="button"
+                            onclick="saveConfig()"
+                            class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg font-semibold transition"
+                    >
+                        <i class="fas fa-save"></i> Save Configuration
+                    </button>
+                </form>
+                <div id="configStatus" class="mt-4"></div>
+            </div>
+
+            <!-- Order Selection -->
+            <div
+                    class="bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition"
+            >
+                <h3
+                        class="text-xl font-semibold flex items-center gap-2 mb-4"
+                >
+                    <i class="fas fa-search"></i> Select Order
+                </h3>
+                <div class="space-y-4">
+                    <div>
+                        <label
+                                for="orderId"
+                                class="block text-sm font-medium text-gray-700"
+                        >Order ID</label
+                        >
+                        <input
+                                type="text"
+                                id="orderId"
+                                placeholder="Enter Order ID"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <button
+                            onclick="loadOrder()"
+                            class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg font-semibold transition"
+                    >
+                        <i class="fas fa-download"></i> Load Order
+                    </button>
+                </div>
+                <div id="loadStatus" class="mt-4"></div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Update Form -->
+            <div
+                    class="bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition"
+            >
+                <h3
+                        class="text-xl font-semibold flex items-center gap-2 mb-4"
+                >
+                    <i class="fas fa-edit"></i> Update Order Fields
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label
+                                for="orderNumberingType"
+                                class="block text-sm font-medium text-gray-700"
+                        >Order Numbering Type</label
+                        >
+                        <input
+                                type="text"
+                                id="orderNumberingType"
+                                placeholder="e.g., AUTO, MANUAL"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="orderDeliveryMode"
+                                class="block text-sm font-medium text-gray-700"
+                        >Delivery Mode</label
+                        >
+                        <select
+                                id="orderDeliveryMode"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        >
+                            <option value="">-- Select --</option>
+                            <option value="Pallet">Pallet</option>
+                            <option value="Container">Container</option>
+                            <option value="Truck">Truck</option>
+                            <option value="Bulk">Bulk</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label
+                                for="blNumber"
+                                class="block text-sm font-medium text-gray-700"
+                        >BL Number</label
+                        >
+                        <input
+                                type="text"
+                                id="blNumber"
+                                placeholder="e.g., BL-67890"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="notes"
+                                class="block text-sm font-medium text-gray-700"
+                        >Notes</label
+                        >
+                        <input
+                                type="text"
+                                id="notes"
+                                placeholder="Some notes about the order"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="transporterBookingNo"
+                                class="block text-sm font-medium text-gray-700"
+                        >Transporter Booking No</label
+                        >
+                        <input
+                                type="text"
+                                id="transporterBookingNo"
+                                placeholder="e.g., TB-123456"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="licensePlate"
+                                class="block text-sm font-medium text-gray-700"
+                        >License Plate</label
+                        >
+                        <input
+                                type="text"
+                                id="licensePlate"
+                                placeholder="e.g., ABC-1234"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="intraCommunicator"
+                                class="block text-sm font-medium text-gray-700"
+                        >Intra Communicator</label
+                        >
+                        <select
+                                id="intraCommunicator"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        >
+                            <option value="">-- Select --</option>
+                            <option value="Unknown">Unknown</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label
+                                for="arrivalDate"
+                                class="block text-sm font-medium text-gray-700"
+                        >Arrival Date</label
+                        >
+                        <input
+                                type="date"
+                                id="arrivalDate"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="departureDate"
+                                class="block text-sm font-medium text-gray-700"
+                        >Departure Date</label
+                        >
+                        <input
+                                type="date"
+                                id="departureDate"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="blDate"
+                                class="block text-sm font-medium text-gray-700"
+                        >BL Date</label
+                        >
+                        <input
+                                type="date"
+                                id="blDate"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="loadingDate"
+                                class="block text-sm font-medium text-gray-700"
+                        >Loading Date</label
+                        >
+                        <input
+                                type="date"
+                                id="loadingDate"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+
+                    <div>
+                        <label
+                                for="unloadingDate"
+                                class="block text-sm font-medium text-gray-700"
+                        >Unloading Date</label
+                        >
+                        <input
+                                type="date"
+                                id="unloadingDate"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button
+                            onclick="updateOrder()"
+                            class="bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+                    >
+                        <i class="fas fa-sync-alt"></i> Update Order
+                    </button>
+                    <button
+                            onclick="clearForm()"
+                            class="bg-[#466275] hover:bg-[#3a5060] text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+                    >
+                        <i class="fas fa-trash"></i> Clear Form
+                    </button>
+                </div>
+
+                <div id="updateStatus" class="mt-4"></div>
+            </div>
+
+            <!-- Order Lines Section -->
+            <div
+                    id="orderLinesSection"
+                    class="hidden bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition"
+            >
+                <h3
+                        class="text-xl font-semibold flex items-center gap-2 mb-4"
+                >
+                    <i class="fas fa-list"></i> Update Order Lines
+                </h3>
+
+                <!-- Order Line Selection -->
+                <div class="mb-4">
+                    <label
+                            for="orderLineType"
+                            class="block text-sm font-medium text-gray-700 mb-2"
+                    >Select Order Line Type</label
+                    >
+                    <div class="flex gap-2">
+                        <select
+                                id="orderLineType"
+                                class="flex-1 rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        >
+                            <option value="">
+                                -- Select Line Type --
+                            </option>
+                            <option value="purchase">
+                                Purchase Lines
+                            </option>
+                            <option value="sales">Sales Lines</option>
+                            <option value="stock">Stock Lines</option>
+                        </select>
+                        <button
+                                onclick="fetchOrderLines()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm font-semibold transition"
+                        >
+                            <i class="fas fa-download"></i> Fetch Lines
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Order Line Update Form -->
+                <div id="orderLineForm" class="hidden">
+                    <div class="border-t border-gray-200 pt-4 mt-4">
+                        <label
+                                for="lineSelect"
+                                class="block text-sm font-medium text-gray-700 mb-2"
+                        >Select Line to Update</label
+                        >
+                        <select
+                                id="lineSelect"
+                                onchange="loadLineData()"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm mb-4"
+                        >
+                            <option value="">
+                                -- Select a line --
+                            </option>
+                        </select>
+
+                        <div
+                                id="lineFieldsContainer"
+                                class="hidden grid grid-cols-1 md:grid-cols-2 gap-4 mb-4"
+                        >
+                            <div>
+                                <label
+                                        for="lineQuantity"
+                                        class="block text-sm font-medium text-gray-700"
+                                >Quantity</label
+                                >
+                                <input
+                                        type="number"
+                                        id="lineQuantity"
+                                        step="0.01"
+                                        placeholder="e.g., 100"
+                                        class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                        for="linePrice"
+                                        class="block text-sm font-medium text-gray-700"
+                                >Price</label
+                                >
+                                <input
+                                        type="number"
+                                        id="linePrice"
+                                        step="0.01"
+                                        placeholder="e.g., 99.99"
+                                        class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                        for="lineDescription"
+                                        class="block text-sm font-medium text-gray-700"
+                                >Description</label
+                                >
+                                <input
+                                        type="text"
+                                        id="lineDescription"
+                                        placeholder="Line description"
+                                        class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label
+                                        for="lineStatus"
+                                        class="block text-sm font-medium text-gray-700"
+                                >Status</label
+                                >
+                                <input
+                                        type="text"
+                                        id="lineStatus"
+                                        placeholder="e.g., Pending, Confirmed"
+                                        class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                                onclick="updateOrderLine()"
+                                class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white px-3 py-2 rounded-lg text-sm font-semibold transition hidden"
+                                id="updateLineBtn"
+                        >
+                            <i class="fas fa-save"></i> Update Order
+                            Line
+                        </button>
+                    </div>
+                </div>
+
+                <div id="lineStatus" class="mt-4"></div>
+            </div>
+
+            <!-- Response Display -->
+            <div
+                    id="responseContainer"
+                    class="hidden bg-white/95 rounded-xl shadow p-6 hover:shadow-2xl transition"
+            >
+                <div class="flex justify-between items-center mb-4">
+                            <span
+                                    class="text-lg font-semibold flex items-center gap-2"
+                            >
+                                <i class="fas fa-code"></i> API Response
+                            </span>
+                    <div class="flex gap-2">
+                        <button
+                                onclick="copyResponse()"
+                                class="bg-[#2e8555] hover:bg-[#29784c] text-white px-3 py-1 rounded-lg text-sm transition"
+                        >
+                            <i class="fas fa-copy"></i> Copy
+                        </button>
+                        <button
+                                onclick="clearResponse()"
+                                class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-lg text-sm transition"
+                        >
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+                <pre
+                        id="responseDisplay"
+                        class="bg-gray-100 rounded-lg p-4 text-sm overflow-x-auto whitespace-pre-wrap max-h-96"
+                ></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer
+            class="text-center mt-12 p-6 bg-white/10 rounded-xl backdrop-blur-md"
+    >
+        <p class="text-white text-sm">&copy; 2026 API Sample Apps</p>
+    </footer>
+</div>
+
+<script>
+    let apiConfig = {
+        apiUrl: "",
+        apiToken: "",
+    };
+
+    // Load saved config from localStorage
+    window.onload = function () {
+        const saved = localStorage.getItem("apiConfig");
+        if (saved) {
+            apiConfig = JSON.parse(saved);
+            document.getElementById("apiUrl").value =
+                apiConfig.apiUrl ||
+                "https://demo.qbiltrade.com/api/v1/orders";
+            document.getElementById("apiToken").value =
+                apiConfig.apiToken || "";
+        }
+    };
+
+    function saveConfig() {
+        const apiUrl = document.getElementById("apiUrl").value.trim();
+        const apiToken = document
+            .getElementById("apiToken")
+            .value.trim();
+
+        if (!apiUrl || !apiToken) {
+            showStatus(
+                "configStatus",
+                "error",
+                "❌ Both API URL and Token are required!",
+            );
+            return;
+        }
+
+        apiConfig = { apiUrl, apiToken };
+        localStorage.setItem("apiConfig", JSON.stringify(apiConfig));
+        showStatus(
+            "configStatus",
+            "success",
+            "✅ Configuration saved successfully!",
+        );
+    }
+
+    async function loadOrder() {
+        const orderId = document.getElementById("orderId").value.trim();
+
+        if (!orderId) {
+            showStatus(
+                "loadStatus",
+                "error",
+                "❌ Please enter an Order ID",
+            );
+            return;
+        }
+
+        if (!apiConfig.apiUrl || !apiConfig.apiToken) {
+            showStatus(
+                "loadStatus",
+                "error",
+                "❌ Please configure API settings first",
+            );
+            return;
+        }
+
+        showLoader(true);
+
+        try {
+            const response = await fetch(
+                `${apiConfig.apiUrl}/${orderId}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${apiConfig.apiToken}`,
+                        Accept: "application/json",
+                    },
+                },
+            );
+
+            showLoader(false);
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${response.statusText}`,
+                );
+            }
+
+            const data = await response.json();
+            populateForm(data);
+            showStatus(
+                "loadStatus",
+                "success",
+                "✅ Order loaded successfully!",
+            );
+            displayResponse(data);
+
+            // Show order lines section if order has lines
+            if (data.lines && data.lines.length > 0) {
+                document
+                    .getElementById("orderLinesSection")
+                    .classList.remove("hidden");
+            }
+        } catch (error) {
+            showLoader(false);
+            showStatus(
+                "loadStatus",
+                "error",
+                `❌ Error: ${error.message}`,
+            );
+        }
+    }
+
+    function populateForm(data) {
+        document.getElementById("orderNumberingType").value =
+            data.orderNumberingType || "";
+        document.getElementById("orderDeliveryMode").value =
+            data.orderDeliveryMode || "";
+        document.getElementById("blNumber").value = data.blNumber || "";
+        document.getElementById("notes").value = data.notes || "";
+        document.getElementById("transporterBookingNo").value =
+            data.transporterBookingNo || "";
+        document.getElementById("licensePlate").value =
+            data.licensePlate || "";
+        document.getElementById("intraCommunicator").value =
+            data.intraCommunicator || "";
+        document.getElementById("arrivalDate").value =
+            data.arrivalDate || "";
+        document.getElementById("departureDate").value =
+            data.departureDate || "";
+        document.getElementById("blDate").value = data.blDate || "";
+        document.getElementById("loadingDate").value =
+            data.loadingDate || "";
+        document.getElementById("unloadingDate").value =
+            data.unloadingDate || "";
+    }
+
+    async function updateOrder() {
+        const orderId = document.getElementById("orderId").value.trim();
+
+        if (!orderId) {
+            showStatus(
+                "updateStatus",
+                "error",
+                "❌ Please enter an Order ID",
+            );
+            return;
+        }
+
+        if (!apiConfig.apiUrl || !apiConfig.apiToken) {
+            showStatus(
+                "updateStatus",
+                "error",
+                "❌ Please configure API settings first",
+            );
+            return;
+        }
+
+        // Build update payload with only non-empty fields
+        const payload = {};
+
+        const fields = [
+            "orderNumberingType",
+            "orderDeliveryMode",
+            "blNumber",
+            "notes",
+            "transporterBookingNo",
+            "licensePlate",
+            "intraCommunicator",
+            "arrivalDate",
+            "departureDate",
+            "blDate",
+            "loadingDate",
+            "unloadingDate",
+        ];
+
+        fields.forEach((field) => {
+            const value = document.getElementById(field).value.trim();
+            if (value) {
+                payload[field] = value;
+            }
+        });
+
+        if (Object.keys(payload).length === 0) {
+            showStatus(
+                "updateStatus",
+                "error",
+                "❌ Please fill at least one field to update",
+            );
+            return;
+        }
+
+        showLoader(true);
+
+        try {
+            const response = await fetch(
+                `${apiConfig.apiUrl}/${orderId}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/merge-patch+json",
+                        Accept: "application/json",
+                        Authorization: `Bearer ${apiConfig.apiToken}`,
+                    },
+                    body: JSON.stringify(payload),
+                },
+            );
+
+            showLoader(false);
+
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${responseData.message || response.statusText}`,
+                );
+            }
+
+            showStatus(
+                "updateStatus",
+                "success",
+                "✅ Order updated successfully!",
+            );
+            displayResponse(responseData);
+        } catch (error) {
+            showLoader(false);
+            showStatus(
+                "updateStatus",
+                "error",
+                `❌ Error: ${error.message}`,
+            );
+        }
+    }
+
+    function clearForm() {
+        const fields = [
+            "orderNumberingType",
+            "orderDeliveryMode",
+            "blNumber",
+            "notes",
+            "transporterBookingNo",
+            "licensePlate",
+            "intraCommunicator",
+            "arrivalDate",
+            "departureDate",
+            "blDate",
+            "loadingDate",
+            "unloadingDate",
+        ];
+        fields.forEach((field) => {
+            document.getElementById(field).value = "";
+        });
+        showStatus("updateStatus", "success", "✅ Form cleared");
+    }
+
+    function displayResponse(data) {
+        const container = document.getElementById("responseContainer");
+        const display = document.getElementById("responseDisplay");
+        display.textContent = JSON.stringify(data, null, 2);
+        container.classList.remove("hidden");
+    }
+
+    function clearResponse() {
+        document
+            .getElementById("responseContainer")
+            .classList.add("hidden");
+        document.getElementById("responseDisplay").textContent = "";
+    }
+
+    function copyResponse() {
+        const text =
+            document.getElementById("responseDisplay").textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ Response copied to clipboard!");
+        });
+    }
+
+    function showStatus(elementId, type, message) {
+        const statusEl = document.getElementById(elementId);
+        const bgColor =
+            type === "success"
+                ? "bg-[#e6f4ea] text-[#2e8555]"
+                : "bg-red-100 text-red-600";
+        const icon =
+            type === "success"
+                ? "fa-check-circle"
+                : "fa-exclamation-triangle";
+
+        statusEl.className = `p-4 rounded ${bgColor} flex items-center gap-2 mt-2`;
+        statusEl.innerHTML = `<i class="fas ${icon}"></i> ${message}`;
+
+        setTimeout(() => {
+            statusEl.innerHTML = "";
+            statusEl.className = "";
+        }, 5000);
+    }
+
+    function showLoader(show) {
+        document
+            .getElementById("loader")
+            .classList.toggle("hidden", !show);
+    }
+
+    // Order Line Management
+    let currentOrderLines = [];
+    let currentLineType = "";
+
+    async function fetchOrderLines() {
+        const orderId = document.getElementById("orderId").value.trim();
+        const lineType = document.getElementById("orderLineType").value;
+
+        if (!orderId) {
+            showStatus(
+                "lineStatus",
+                "error",
+                "❌ Please load an order first",
+            );
+            return;
+        }
+
+        if (!lineType) {
+            showStatus(
+                "lineStatus",
+                "error",
+                "❌ Please select a line type",
+            );
+            return;
+        }
+
+        if (!apiConfig.apiUrl || !apiConfig.apiToken) {
+            showStatus(
+                "lineStatus",
+                "error",
+                "❌ Please configure API settings first",
+            );
+            return;
+        }
+
+        showLoader(true);
+        currentLineType = lineType;
+
+        try {
+            const response = await fetch(
+                `${apiConfig.apiUrl}/${orderId}/${lineType}`,
+                {
+                    method: "GET",
+                    headers: {
+                        Authorization: `Bearer ${apiConfig.apiToken}`,
+                        Accept: "application/json",
+                    },
+                },
+            );
+
+            showLoader(false);
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${response.statusText}`,
+                );
+            }
+
+            const data = await response.json();
+            currentOrderLines = Array.isArray(data) ? data : [data];
+
+            populateLineSelect();
+            showStatus(
+                "lineStatus",
+                "success",
+                `✅ Fetched ${currentOrderLines.length} ${lineType} line(s)`,
+            );
+            displayResponse(data);
+        } catch (error) {
+            showLoader(false);
+            showStatus(
+                "lineStatus",
+                "error",
+                `❌ Error: ${error.message}`,
+            );
+        }
+    }
+
+    function populateLineSelect() {
+        const lineSelect = document.getElementById("lineSelect");
+        const orderLineForm = document.getElementById("orderLineForm");
+
+        if (currentOrderLines.length === 0) {
+            lineSelect.innerHTML =
+                '<option value="">-- No lines found --</option>';
+            orderLineForm.classList.add("hidden");
+            return;
+        }
+
+        lineSelect.innerHTML =
+            '<option value="">-- Select a line --</option>';
+        currentOrderLines.forEach((line, index) => {
+            const label =
+                line.id ||
+                line.lineNumber ||
+                line.displayNumber ||
+                `Line ${index + 1}`;
+            lineSelect.innerHTML += `<option value="${index}">${label}</option>`;
+        });
+
+        orderLineForm.classList.remove("hidden");
+    }
+
+    function loadLineData() {
+        const lineSelect = document.getElementById("lineSelect");
+        const selectedIndex = lineSelect.value;
+        const fieldsContainer = document.getElementById(
+            "lineFieldsContainer",
+        );
+        const updateBtn = document.getElementById("updateLineBtn");
+
+        if (selectedIndex === "") {
+            fieldsContainer.classList.add("hidden");
+            updateBtn.classList.add("hidden");
+            return;
+        }
+
+        const line = currentOrderLines[parseInt(selectedIndex)];
+
+        document.getElementById("lineQuantity").value =
+            line.quantity || "";
+        document.getElementById("linePrice").value =
+            line.price || line.unitPrice || "";
+        document.getElementById("lineDescription").value =
+            line.description || "";
+        document.getElementById("lineStatus").value = line.status || "";
+
+        fieldsContainer.classList.remove("hidden");
+        updateBtn.classList.remove("hidden");
+    }
+
+    async function updateOrderLine() {
+        const orderId = document.getElementById("orderId").value.trim();
+        const lineSelect = document.getElementById("lineSelect");
+        const selectedIndex = lineSelect.value;
+
+        if (selectedIndex === "") {
+            showStatus(
+                "lineStatus",
+                "error",
+                "❌ Please select a line to update",
+            );
+            return;
+        }
+
+        const line = currentOrderLines[parseInt(selectedIndex)];
+        const lineId = line.id;
+
+        if (!lineId) {
+            showStatus("lineStatus", "error", "❌ Line ID not found");
+            return;
+        }
+
+        const payload = {};
+
+        const quantity = document
+            .getElementById("lineQuantity")
+            .value.trim();
+        const price = document.getElementById("linePrice").value.trim();
+        const description = document
+            .getElementById("lineDescription")
+            .value.trim();
+        const status = document
+            .getElementById("lineStatus")
+            .value.trim();
+
+        if (quantity) payload.quantity = parseFloat(quantity);
+        if (price) payload.price = parseFloat(price);
+        if (description) payload.description = description;
+        if (status) payload.status = status;
+
+        if (Object.keys(payload).length === 0) {
+            showStatus(
+                "lineStatus",
+                "error",
+                "❌ Please modify at least one field",
+            );
+            return;
+        }
+
+        showLoader(true);
+
+        try {
+            const response = await fetch(
+                `${apiConfig.apiUrl}/${orderId}/${currentLineType}/${lineId}`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/merge-patch+json",
+                        Accept: "application/json",
+                        Authorization: `Bearer ${apiConfig.apiToken}`,
+                    },
+                    body: JSON.stringify(payload),
+                },
+            );
+
+            showLoader(false);
+
+            const responseData = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    `HTTP ${response.status}: ${responseData.message || response.statusText}`,
+                );
+            }
+
+            showStatus(
+                "lineStatus",
+                "success",
+                "✅ Order line updated successfully!",
+            );
+            displayResponse(responseData);
+
+            // Refresh the lines
+            await fetchOrderLines();
+        } catch (error) {
+            showLoader(false);
+            showStatus(
+                "lineStatus",
+                "error",
+                `❌ Error: ${error.message}`,
+            );
+        }
+    }
+</script>
+</body>
+</html>
