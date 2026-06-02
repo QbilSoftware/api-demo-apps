@@ -31,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     permissions:
-      contents: write
+      contents: read
       pull-requests: write
       issues: write
       id-token: write
@@ -216,82 +216,6 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
-      - name: Upload screenshots & recording to user-attachments
-        if: always()
-        id: upload_media
-        env:
-          # GITHUB_TOKEN sometimes works for this endpoint; if it 401s, swap
-          # to a PAT stored in a secret named UPLOAD_TOKEN and reference it
-          # here instead. The endpoint is the undocumented one GitHub's web
-          # UI uses when you drag-drop a file into a comment box — output
-          # URLs at github.com/user-attachments/assets/<uuid> get auto-
-          # embedded as <img> / <video> by GitHub's renderer.
-          GH_TOKEN: ${{ secrets.UPLOAD_TOKEN || secrets.GITHUB_TOKEN }}
-          REPO_ID: ${{ github.event.repository.id }}
-        run: |
-          set -uo pipefail
-          : > /tmp/media-urls.txt
-
-          upload_one() {
-            local file="$1" ctype="$2"
-            local name size policy upload_url asset_url
-            name=$(basename "$file")
-            size=$(stat -c%s "$file")
-            echo "→ ${name} (${size} bytes, ${ctype})"
-
-            policy=$(curl -sS -X POST \
-              -H "Authorization: token ${GH_TOKEN}" \
-              -H "Accept: application/json" \
-              -H "Content-Type: application/json" \
-              -H "GitHub-Verified-Fetch: true" \
-              -d "{\"name\":\"${name}\",\"size\":${size},\"content_type\":\"${ctype}\",\"repository_id\":${REPO_ID}}" \
-              https://github.com/upload/policies/assets) || {
-                echo "::warning::policy request failed for ${name}"
-                return 1
-              }
-            upload_url=$(echo "$policy" | jq -r '.upload_url // empty')
-            asset_url=$(echo "$policy" | jq -r '.asset.href // empty')
-            if [ -z "$upload_url" ] || [ -z "$asset_url" ]; then
-              echo "::warning::bad policy response for ${name}:"
-              echo "$policy" | head -c 500
-              echo
-              return 1
-            fi
-
-            local -a form_args=()
-            while IFS=$'\t' read -r k v; do
-              form_args+=(-F "${k}=${v}")
-            done < <(echo "$policy" | jq -r '.form | to_entries[] | "\(.key)\t\(.value)"')
-            form_args+=(-F "file=@${file}")
-
-            if ! curl -sSf -X POST "$upload_url" "${form_args[@]}" > /dev/null; then
-              echo "::warning::S3 upload failed for ${name}"
-              return 1
-            fi
-
-            echo "${name}=${asset_url}" >> /tmp/media-urls.txt
-            echo "  ✓ ${asset_url}"
-          }
-
-          # `Rename Playwright recording` step already hoisted any nested
-          # .webm to pw-output/session.webm before this step runs.
-
-          while IFS= read -r -d '' f; do
-            upload_one "$f" "image/png" || true
-          done < <(find pw-output -type f -name '*.png' -print0 2>/dev/null)
-
-          if [ -f pw-output/session.webm ]; then
-            upload_one pw-output/session.webm "video/webm" || true
-          fi
-
-          echo
-          echo "Mapping (/tmp/media-urls.txt):"
-          if [ -s /tmp/media-urls.txt ]; then
-            cat /tmp/media-urls.txt
-          else
-            echo "  (empty — every upload failed; the comment will fall back to bold captions)"
-          fi
-
       - name: Post / update PR comment
         if: always()
         uses: actions/github-script@v7
@@ -318,47 +242,31 @@ jobs:
               ? fs.readFileSync(reportPath, 'utf8').trim()
               : '_No report produced — see workflow logs._';
 
-            // Load filename → user-attachments URL mapping written by the
-            // upload step. Each line is "name=url". Missing file = upload
-            // failed for that asset; the linkifier degrades to bold-only.
-            const mediaMapPath = '/tmp/media-urls.txt';
-            const mediaMap = new Map();
-            if (fs.existsSync(mediaMapPath)) {
-              for (const line of fs.readFileSync(mediaMapPath, 'utf8').split('\n')) {
-                const eq = line.indexOf('=');
-                if (eq > 0) mediaMap.set(line.slice(0, eq), line.slice(eq + 1));
-              }
-            }
-            core.info(`Loaded ${mediaMap.size} media URL(s)`);
-
+            // The report references relative media filenames (01-foo.png,
+            // session.webm). Those files live only in the artifact bundle,
+            // so rewrite the refs to bold captions — a relative link in a
+            // PR comment would render broken.
             const stripQuery = (p) => p.split(/[?#]/)[0];
             const flatten = (p) => stripQuery(p).split('/').pop();
-            const linkify = (caption, file) => {
-              const name = flatten(file);
-              const url = mediaMap.get(name);
-              const text = (caption || name).trim();
-              if (!text) return '';
-              if (!url) return `**${text}**`;
-              return `[${text}](${url})`;
+            const boldRef = (caption, file) => {
+              const text = (caption || flatten(file)).trim();
+              return text ? `**${text}**` : '';
             };
 
             // Rewrite markdown links/images that point at relative media.
             report = report.replace(
               /!?\[((?:\\.|[^\]])*)\]\(((?!https?:|data:)[^)\s]+?\.(?:png|jpg|jpeg|gif|webp|webm|mp4))(?:\s+"[^"]*")?\)/gi,
-              (_, alt, file) => linkify(alt, file)
+              (_, alt, file) => boldRef(alt, file)
             );
             // Rewrite <img src="relative.png"> tags the same way.
             report = report.replace(
               /<img\b[^>]*?\bsrc=(["'])((?!https?:|data:)[^"']+?\.(?:png|jpg|jpeg|gif|webp))\1[^>]*?(?:\balt=(["'])([^"']*)\3)?[^>]*>/gi,
-              (_, _q, file, __q, alt) => linkify(alt, file)
+              (_, _q, file, __q, alt) => boldRef(alt, file)
             );
 
-            // Auto-embed the session video: GitHub's renderer turns a
-            // markdown link to a user-attachments asset with a video file
-            // extension into a real <video controls> player.
-            const videoUrl = mediaMap.get('session.webm');
-            const videoEmbed = videoUrl
-              ? `\n\n### 📹 Session recording\n\n[session.webm](${videoUrl})\n`
+            // Point readers at the artifact bundle for all media.
+            const videoEmbed = artifactUrl
+              ? `\n\n📹 Screenshots and the session recording (\`session.webm\`) are in the [artifact bundle](${artifactUrl}).\n`
               : '';
 
             const marker = '<!-- claude-pr-test-comment -->';
