@@ -4,5 +4,20 @@ This repository contains a collection of sample applications demonstrating how t
 
 ## Available Applications
 
-### 1. Order  App
-Documentation: [README.md](src/Order/README.md)
+### 1. Order App
+
+A Fastify-based demo app showing how to fetch, update, and sync orders through the QBil Trade API. It includes three sub-apps served from a single dashboard:
+
+- **Fetching Orders and Download Documents** — search orders, view responses, and convert them to XML
+- **Update Order** — update order fields (delivery mode, dates, notes, etc.) via `PATCH` requests
+- **Webhook** — receive and monitor webhook notifications, and sync the referenced resource from the API
+
+Documentation: [src/Order/README.md](src/Order/README.md)
+
+## Contributing
+
+Issues and pull requests are welcome. Please avoid committing dependency folders (`node_modules`) or lockfiles for environments other than your own — see each app's `.gitignore`.
+
+## License
+
+See individual application directories for license information.

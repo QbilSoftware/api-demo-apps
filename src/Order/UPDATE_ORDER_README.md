@@ -15,7 +15,7 @@ A simple web application to demonstrate updating order fields using the QBil Tra
 
 1. Navigate to the Order directory:
    ```bash
-   cd /home/sadiq/Desktop/api-demo-apps/src/Order
+   cd src/Order
    ```
 
 2. Install dependencies (if not already installed):
