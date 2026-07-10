@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Order CSV Export</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body
+        class="min-h-screen bg-gradient-to-br from-[#1d394b] to-[#2e8555] text-gray-800 font-sans overflow-x-hidden"
+>
+<div class="max-w-7xl mx-auto p-6">
+    <!-- Header -->
+    <header class="text-center mb-12">
+        <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-lg">
+            📑 Order CSV Export
+        </h1>
+        <p class="text-white/80 mt-2 text-lg">
+            Fetch orders from the API and deliver them as a downloadable CSV file
+        </p>
+        <div class="mt-4">
+            <a
+                    href="/"
+                    class="inline-block px-6 py-2 rounded-full border border-white/40 bg-white/20 text-white backdrop-blur-md hover:bg-white/30 shadow-lg transition hover:scale-105"
+            >🏠 Back to Home</a>
+        </div>
+    </header>
+
+    <!-- Loader -->
+    <div
+            id="loader"
+            class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+    >
+        <div
+                class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"
+        ></div>
+    </div>
+
+    <!-- Main Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Panel -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- API Configuration -->
+            <div class="bg-white/95 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition">
+                <h2 class="text-lg font-semibold mb-4">⚙️ API Configuration</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="tenant" class="block text-sm font-medium text-gray-700">Tenant</label>
+                        <input
+                                type="text"
+                                id="tenant"
+                                placeholder="e.g. demo"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label for="environment" class="block text-sm font-medium text-gray-700">Environment</label>
+                        <select
+                                id="environment"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        >
+                            <option value="test">Test</option>
+                            <option value="staging">Staging</option>
+                            <option value="localhost">Localhost</option>
+                        </select>
+                    </div>
+                    <div id="portField" style="display: none">
+                        <label for="port" class="block text-sm font-medium text-gray-700">Port (localhost)</label>
+                        <input
+                                type="number"
+                                id="port"
+                                value="3786"
+                                disabled
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label for="apiToken" class="block text-sm font-medium text-gray-700">Authorization Token</label>
+                        <input
+                                type="password"
+                                id="apiToken"
+                                placeholder="Bearer token or API key"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <div id="connectionStatus" class="text-sm mt-2 text-gray-600"></div>
+                </div>
+            </div>
+
+            <!-- Fetch Controls -->
+            <div class="bg-white/95 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition">
+                <h2 class="text-lg font-semibold mb-4">1. Fetch Orders</h2>
+                <button
+                        onclick="loadOrders()"
+                        class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white font-medium px-4 py-2 rounded-lg transition mb-4"
+                >
+                    Get All Orders
+                </button>
+                <div class="bg-white/90 rounded-xl p-4 shadow space-y-3">
+                    <div>
+                        <label for="searchNumber" class="block text-sm font-medium text-gray-700">Search by Display Number</label>
+                        <input
+                                type="text"
+                                id="searchNumber"
+                                placeholder="ORD-12345"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label for="searchSubsidiary" class="block text-sm font-medium text-gray-700">Filter by Subsidiary</label>
+                        <input
+                                type="text"
+                                id="searchSubsidiary"
+                                placeholder="demo"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <button
+                            onclick="loadOrders(true)"
+                            class="w-full bg-[#2e8555] hover:bg-[#29784c] text-white px-4 py-2 rounded-lg text-sm"
+                    >
+                        Search &amp; Load
+                    </button>
+                </div>
+            </div>
+
+            <!-- Export Options -->
+            <div class="bg-white/95 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition">
+                <h2 class="text-lg font-semibold mb-4">2. Export Options</h2>
+                <div class="space-y-4">
+                    <div>
+                        <label for="delimiter" class="block text-sm font-medium text-gray-700">Delimiter</label>
+                        <select
+                                id="delimiter"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        >
+                            <option value=",">Comma ( , )</option>
+                            <option value=";">Semicolon ( ; )</option>
+                            <option value="\t">Tab</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="filename" class="block text-sm font-medium text-gray-700">File name</label>
+                        <input
+                                type="text"
+                                id="filename"
+                                value="orders-export.csv"
+                                class="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:ring-[#2e8555] focus:border-[#2e8555] p-2 text-sm"
+                        />
+                    </div>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" id="includeBom" checked class="rounded border-gray-300 text-[#2e8555] focus:ring-[#2e8555]" />
+                        Add UTF-8 BOM (Excel-friendly)
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" id="guardInjection" checked class="rounded border-gray-300 text-[#2e8555] focus:ring-[#2e8555]" />
+                        Neutralize spreadsheet formulas (CSV-injection safe)
+                    </label>
+                    <div class="flex gap-2">
+                        <button
+                                onclick="downloadCsv()"
+                                class="flex-1 bg-[#2e8555] hover:bg-[#29784c] text-white font-medium px-4 py-2 rounded-lg transition"
+                        >
+                            ⬇️ Download CSV
+                        </button>
+                        <button
+                                onclick="copyCsv()"
+                                class="bg-[#466275] hover:bg-[#3a5060] text-white px-4 py-2 rounded-lg text-sm"
+                        >
+                            Copy
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500">
+                        The CSV is generated in the browser from the API response — no data leaves your machine.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Summary -->
+            <div id="summary" class="hidden bg-white/95 rounded-2xl p-6 shadow-lg">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <span class="text-lg font-semibold">📊 Loaded Orders</span>
+                        <p id="summaryText" class="text-sm text-gray-600 mt-1"></p>
+                    </div>
+                    <div class="flex gap-2 text-sm">
+                        <button
+                                onclick="toggleAllColumns(true)"
+                                class="bg-[#466275] hover:bg-[#3a5060] text-white px-3 py-1 rounded-lg"
+                        >
+                            Select all
+                        </button>
+                        <button
+                                onclick="toggleAllColumns(false)"
+                                class="bg-gray-600 hover:bg-gray-700 text-white px-3 py-1 rounded-lg"
+                        >
+                            Clear
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Column Picker -->
+            <div id="columnPicker" class="hidden bg-white/95 rounded-2xl p-6 shadow-lg">
+                <h2 class="text-lg font-semibold mb-4">Columns to include</h2>
+                <div id="columnList" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
+            </div>
+
+            <!-- Preview -->
+            <div id="previewSection" class="hidden bg-white/95 rounded-2xl p-6 shadow-lg overflow-hidden">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-lg font-semibold">👁️ CSV Preview</span>
+                    <span id="previewNote" class="text-xs text-gray-500"></span>
+                </div>
+                <div class="overflow-x-auto max-h-[520px] overflow-y-auto border border-gray-200 rounded-lg">
+                    <table class="min-w-full text-sm">
+                        <thead id="previewHead" class="bg-gray-100 sticky top-0"></thead>
+                        <tbody id="previewBody" class="divide-y divide-gray-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="bg-white/95 rounded-2xl p-10 shadow-lg text-center text-gray-500">
+                <p class="text-5xl mb-3">📥</p>
+                <p>Configure the API, then fetch orders to build your CSV export.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="text-center mt-12 p-6 bg-white/10 rounded-xl backdrop-blur-md">
+        <p class="text-white text-sm">&copy; 2026 API Sample Apps</p>
+    </footer>
+</div>
+
+<script src="csv-export.js"></script>
+</body>
+</html>
