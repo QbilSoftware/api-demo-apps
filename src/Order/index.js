@@ -31,6 +31,10 @@ fastify.get('/update-order', (req, reply) => {
     reply.sendFile('update-order.html');
 });
 
+fastify.get('/csv-export', (req, reply) => {
+    reply.sendFile('csv-export.html');
+});
+
 // Save API config (URL + Token)
 fastify.post('/set-config', async (request, reply) => {
     const { apiUrl, apiToken } = request.body;

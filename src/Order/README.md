@@ -37,6 +37,7 @@ The dashboard at `/` links to three demo pages:
 | Fetching Orders and Download Documents | `/order-xml` | Search orders, view responses, and convert them to XML |
 | Update Order | `/update-order` | Update order fields via `PATCH` requests — see [UPDATE_ORDER_README.md](UPDATE_ORDER_README.md) |
 | Webhook | `/webhook` | Receive webhook notifications and sync the referenced resource from the API |
+| CSV Export | `/csv-export` | Fetch orders from the API and deliver them as a downloadable CSV file with selectable columns. Follows Hydra `hydra:next` pagination so the export covers all pages, not just the first. |
 
 ### How to Use the App
 
